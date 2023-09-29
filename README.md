@@ -39,9 +39,9 @@
 
 - [James Cato](https://github.com/catoja1107)
 - [Alexandria Alavi](https://github.com/alexjanette)
-- [JIMMY NGUYEN](https://github.com/dnguyen00)
-- [U](https://github.com/ubbiehawk)
-- [N](https://github.com/nphoumilay1)
+- [Jimmy Nguyen](https://github.com/dnguyen00)
+- [Ubong Thompson](https://github.com/ubbiehawk)
+- [Nina Phoumilay](https://github.com/nphoumilay1)
 
 ## Copyright and license
 
