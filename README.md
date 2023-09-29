@@ -50,7 +50,7 @@ Code and documentation copyright 2023 CSC4360 Team 06. Code released under the [
 
 ## Privacy Policy and Terms of Use
 
-[Privacy Policy](https://github.com/catoja1107/WifiScan/blob/main/privacy_policy.md)https://github.com/catoja1107/WifiScan/blob/main/privacy_policy.md
-[Terms of Use](https://github.com/catoja1107/WifiScan/blob/main/terms_and_conditions.md)https://github.com/catoja1107/WifiScan/blob/main/terms_and_conditions.md
+- [Privacy Policy](https://github.com/catoja1107/WifiScan/blob/main/privacy_policy.md)
+- [Terms of Use](https://github.com/catoja1107/WifiScan/blob/main/terms_and_conditions.md)
 
 Enjoy :metal:
