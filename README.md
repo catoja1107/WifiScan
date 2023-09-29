@@ -46,6 +46,6 @@
 
 ## Copyright and license
 
-Code and documentation copyright 2023 CSC4360 Team 06. Code released under the [MIT License](https://reponame/blob/master/LICENSE).
+Code and documentation copyright 2023 CSC4360 Team 06. Code released under the [MIT License](https://github.com/catoja1107/WifiScan/blob/main/LICENSE).
 
 Enjoy :metal:
