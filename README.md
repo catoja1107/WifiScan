@@ -24,6 +24,7 @@
 
 - Step-1: Download APK release from side-bar, or Google Play Store link.
 - Step-2: Load app.
+- Step-3: Enjoy!
 
 
 ## Status
