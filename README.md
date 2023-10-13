@@ -15,6 +15,7 @@
 
 - [Quick start](#quick-start)
 - [Status](#status)
+- [UML](#uml)
 - [What's included](#whats-included)
 - [Creators](#creators)
 - [Copyright and license](#copyright-and-license)
@@ -31,10 +32,16 @@
 
 [Beta Release via Google Play](https://play.google.com/store/apps/details?id=com.shovelteam.shovelpaladin)
 
+
+## UML
+
+<img src="./Sequence_Diag.drawio.svg">
+
 ## What's included
 
 - Project repository
 - Pre-built APK
+
 
 ## Creators
 
