@@ -34,3 +34,6 @@ google-services.json
 
 build.yaml
 deploy.yaml
+
+# Firebase
+.firebaserc
