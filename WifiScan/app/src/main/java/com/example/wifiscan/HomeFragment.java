@@ -1,5 +1,6 @@
 package com.example.wifiscan;
 
+import android.net.wifi.WifiManager;
 import android.os.Bundle;
 
 import androidx.fragment.app.Fragment;
@@ -56,9 +57,16 @@ public class HomeFragment extends Fragment {
     }
 
     @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container,
-                             Bundle savedInstanceState) {
-        // Inflate the layout for this fragment
-        return inflater.inflate(R.layout.fragment_home, container, false);
+    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+        View view = inflater.inflate(R.layout.fragment_home, container, false);
+        view.findViewById(R.id.scanOnceButton).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                WifiScanner wifiScanner = new WifiScanner(getActivity());
+                wifiScanner.startScan();
+            }
+        });
+
+        return view;
     }
 }

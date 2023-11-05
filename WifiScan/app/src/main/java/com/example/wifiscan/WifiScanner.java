@@ -33,15 +33,17 @@ public class WifiScanner {
         this.context = context;
         this.firebaseFirestore = FirebaseFirestore.getInstance();
         this.firebaseAuth = FirebaseAuth.getInstance();
+        wifiManager = (WifiManager) context.getSystemService(Context.WIFI_SERVICE);
 
         this.listener = new WifiScannerListener() {
             @Override
             public void onWifiScanResult(ScanResult scanResult) {
                 Map<String, Object> network = new HashMap<>();
+                network.put("uid", firebaseAuth.getCurrentUser().getUid());
                 network.put("ssid", scanResult.SSID);
                 network.put("bssid", scanResult.BSSID);
-                network.put("frequency", scanResult.frequency); //convert to rssi
-                network.put("uid", firebaseAuth.getCurrentUser().getUid());
+                network.put("db", scanResult.level); //convert to rssi
+                network.put("frequency", scanResult.frequency);
                 network.put("timestamp", FieldValue.serverTimestamp());
 
                 firebaseFirestore.collection("network")

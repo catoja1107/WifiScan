@@ -72,7 +72,6 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-
         getSupportFragmentManager().beginTransaction()
                 .replace(R.id.fragment_layout, HomeFragment.class, null)
                 .commit();

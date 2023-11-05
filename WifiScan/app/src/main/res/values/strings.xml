@@ -9,4 +9,5 @@
     <string name="login_to_google">login to google</string>
     <string name="grant_permissions">grant permissions</string>
     <string name="missing_permissions">missing permissions</string>
+    <string name="scan_once">scan once</string>
 </resources>
