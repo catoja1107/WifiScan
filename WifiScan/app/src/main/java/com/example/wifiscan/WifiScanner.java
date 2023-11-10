@@ -17,6 +17,12 @@ import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
 
+import com.google.android.gms.maps.GoogleMap;
+import com.google.android.gms.maps.OnMapReadyCallback;
+import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.MarkerOptions;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -38,15 +44,15 @@ public class WifiScanner {
         this.listener = new WifiScannerListener() {
             @Override
             public void onWifiScanResult(ScanResult scanResult) {
+                String uid = firebaseAuth.getCurrentUser().getUid();
                 Map<String, Object> network = new HashMap<>();
-                network.put("uid", firebaseAuth.getCurrentUser().getUid());
                 network.put("ssid", scanResult.SSID);
                 network.put("bssid", scanResult.BSSID);
                 network.put("db", scanResult.level); //convert to rssi
                 network.put("frequency", scanResult.frequency);
                 network.put("timestamp", FieldValue.serverTimestamp());
 
-                firebaseFirestore.collection("network")
+                firebaseFirestore.collection(uid)
                         .add(network)
                         .addOnSuccessListener(new OnSuccessListener<DocumentReference>() {
                             @Override
