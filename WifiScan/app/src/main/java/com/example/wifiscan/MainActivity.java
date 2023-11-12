@@ -17,6 +17,12 @@ import androidx.fragment.app.FragmentManager;
 
 import com.google.android.material.navigation.NavigationView;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.firestore.DocumentReference;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.SetOptions;
+
+import java.util.HashMap;
+import java.util.Map;
 
 public class MainActivity extends AppCompatActivity {
     @Override
@@ -29,6 +35,8 @@ public class MainActivity extends AppCompatActivity {
             startActivity(intent);
             finish();
         }
+
+        SetupClient();
 
         if(!((this.checkSelfPermission(Manifest.permission.ACCESS_WIFI_STATE) == PackageManager.PERMISSION_GRANTED)
         && (this.checkSelfPermission(Manifest.permission.CHANGE_WIFI_STATE) == PackageManager.PERMISSION_GRANTED)
@@ -91,5 +99,21 @@ public class MainActivity extends AppCompatActivity {
                 .replace(R.id.fragment_layout, HomeFragment.class, null, "Home")
                 .setReorderingAllowed(true)
                 .commit();
+    }
+
+    private void SetupClient() {
+        FirebaseFirestore firebaseFirestore = FirebaseFirestore.getInstance();
+        String uid = FirebaseAuth.getInstance().getUid();
+
+        Map<Object, Object> data = new HashMap<>();
+        Map<String, Object> friends = new HashMap<>();
+        data.put("email", FirebaseAuth.getInstance().getCurrentUser().getEmail());
+        data.put("friends", friends);
+
+        DocumentReference document = firebaseFirestore.collection("userdata").document(uid);
+        if(!document.get().isSuccessful()) {
+            firebaseFirestore.collection("userdata").document(uid)
+                    .set(data);
+        }
     }
 }

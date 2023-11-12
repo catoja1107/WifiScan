@@ -1,6 +1,6 @@
 package com.example.wifiscan;
 
-import android.net.wifi.WifiManager;
+import android.net.wifi.ScanResult;
 import android.os.Bundle;
 
 import androidx.fragment.app.Fragment;
@@ -8,6 +8,13 @@ import androidx.fragment.app.Fragment;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.firestore.FieldValue;
+import com.google.firebase.firestore.FirebaseFirestore;
+
+import java.util.HashMap;
+import java.util.List;
 
 /**
  * A simple {@link Fragment} subclass.
@@ -62,8 +69,43 @@ public class HomeFragment extends Fragment {
         view.findViewById(R.id.scanOnceButton).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                WifiScanner wifiScanner = new WifiScanner(getActivity());
-                wifiScanner.startScan();
+                WifiScanner wifiScanner = new WifiScanner(getActivity(), new WifiScannerListener() {
+                    @Override
+                    public void onWifiScanResult(List<ScanResult> scanResults) {
+                        if(scanResults.size() == 0) {
+                            return;
+                        }
+
+                        HashMap<String, Object> data = new HashMap<>();
+                        HashMap<String, Object> networks = new HashMap<>();
+
+
+                        int counter = 0;
+                        for(ScanResult scanResult : scanResults) {
+                            HashMap<Object, Object> network = new HashMap<>();
+                            network.put("ssid", scanResult.SSID);
+                            network.put("bssid", scanResult.BSSID);
+                            network.put("db", scanResult.level);
+                            network.put("frequency", scanResult.frequency);
+                            network.put("capabilities", scanResult.capabilities);
+
+                            networks.put("" + counter++, network);
+                        }
+
+                        data.put("network_list", networks);
+                        data.put("length", networks.size());
+                        data.put("timestamp", FieldValue.serverTimestamp());
+
+                        FirebaseFirestore firebaseFirestore = FirebaseFirestore.getInstance();
+                        FirebaseAuth firebaseAuth = FirebaseAuth.getInstance();
+
+                        firebaseFirestore.collection("userdata").document(firebaseAuth.getUid()).collection("networks")
+                                .add(data);
+                    }
+                });
+
+
+                wifiScanner.executeScanOnce();
             }
         });
 
