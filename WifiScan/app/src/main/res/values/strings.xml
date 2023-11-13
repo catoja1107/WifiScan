@@ -1,7 +1,11 @@
 <resources>
     <string name="app_name">WifiScan</string>
     <string name="home_menu">Home</string>
+    <string name="performance_menu">Performance</string>
+    <string name="maps_menu">Maps</string>
+    <string name="graphs_menu">Graphs</string>
     <string name="settings_menu">Settings</string>
+    <string name="logout">Log Out</string>
     <string name="open">open</string>
     <string name="close">close</string>
     <!-- TODO: Remove or change this placeholder text -->
@@ -9,5 +13,5 @@
     <string name="login_to_google">login to google</string>
     <string name="grant_permissions">grant permissions</string>
     <string name="missing_permissions">missing permissions</string>
-    <string name="scan_once">scan once</string>
+    <string name="scan_once">Scan</string>
 </resources>
