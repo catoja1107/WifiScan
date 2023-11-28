@@ -9,11 +9,27 @@
     android:orientation="vertical"
     tools:context=".HomeFragment">
 
+    <com.google.android.gms.maps.MapView
+        android:id="@+id/mapView"
+        android:layout_width="match_parent"
+        android:layout_height="fill_parent"
+        android:layout_weight="0.10"/>
+
+    <Button
+        android:id="@+id/Filter"
+        style="@style/Widget.AppCompat.Button"
+        android:layout_width="match_parent"
+        android:layout_height="fill_parent"
+        android:layout_weight="0.8"
+        android:onClick="scanOnceButton"
+        android:text="Filter" />
+
     <Button
         android:id="@+id/scanOnceButton"
         style="@style/Widget.AppCompat.Button"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="fill_parent"
+        android:layout_weight="0.8"
         android:onClick="scanOnceButton"
         android:text="@string/scan_once" />
 </LinearLayout>
