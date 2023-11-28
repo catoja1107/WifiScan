@@ -1,64 +1,65 @@
 package com.example.wifiscan;
 
+import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 
-import androidx.fragment.app.Fragment;
+import androidx.appcompat.app.AppCompatDelegate;
+import androidx.preference.Preference;
+import androidx.preference.PreferenceFragmentCompat;
+import androidx.preference.SwitchPreferenceCompat;
 
-import android.view.LayoutInflater;
-import android.view.View;
-import android.view.ViewGroup;
+import com.google.firebase.auth.FirebaseAuth;
 
-/**
- * A simple {@link Fragment} subclass.
- * Use the {@link SettingsFragment#newInstance} factory method to
- * create an instance of this fragment.
- */
-public class SettingsFragment extends Fragment {
+public class SettingsFragment extends PreferenceFragmentCompat  {
 
-    // TODO: Rename parameter arguments, choose names that match
-    // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
-    private static final String ARG_PARAM1 = "param1";
-    private static final String ARG_PARAM2 = "param2";
-
-    // TODO: Rename and change types of parameters
-    private String mParam1;
-    private String mParam2;
-
-    public SettingsFragment() {
-        // Required empty public constructor
-    }
-
-    /**
-     * Use this factory method to create a new instance of
-     * this fragment using the provided parameters.
-     *
-     * @param param1 Parameter 1.
-     * @param param2 Parameter 2.
-     * @return A new instance of fragment SettingsFragment.
-     */
-    // TODO: Rename and change types and number of parameters
-    public static SettingsFragment newInstance(String param1, String param2) {
-        SettingsFragment fragment = new SettingsFragment();
-        Bundle args = new Bundle();
-        args.putString(ARG_PARAM1, param1);
-        args.putString(ARG_PARAM2, param2);
-        fragment.setArguments(args);
-        return fragment;
-    }
 
     @Override
-    public void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        if (getArguments() != null) {
-            mParam1 = getArguments().getString(ARG_PARAM1);
-            mParam2 = getArguments().getString(ARG_PARAM2);
+    public void onCreatePreferences(Bundle savedInstanceState, String rootKey) {
+        setPreferencesFromResource(R.xml.preferences, rootKey);
+        // Set the initial state of the Dark Mode switch
+        SwitchPreferenceCompat darkModeSwitch = findPreference("dark_mode_preference");
+        if (darkModeSwitch != null) {
+            darkModeSwitch.setChecked(AppCompatDelegate.getDefaultNightMode() == AppCompatDelegate.MODE_NIGHT_YES);
         }
     }
 
     @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container,
-                             Bundle savedInstanceState) {
-        // Inflate the layout for this fragment
-        return inflater.inflate(R.layout.fragment_settings, container, false);
+    public boolean onPreferenceTreeClick(Preference preference) {
+        String key = preference.getKey();
+        if ("feedback_preference".equals(key)) {
+            // Handle feedback preference click
+            sendFeedback();
+            return true;  // Consume the click event
+        }
+        else if("SO".equals(key)){
+            signOut();
+        }
+
+
+        return super.onPreferenceTreeClick(preference);
     }
+
+    private void sendFeedback() {
+        // Replace this with your feedback handling logic
+
+        Intent emailIntent = new Intent(Intent.ACTION_SENDTO, Uri.fromParts(
+                "mailto", "demo@example.com", null));
+        emailIntent.putExtra(Intent.EXTRA_SUBJECT, "Feedback from the app");
+        startActivity(Intent.createChooser(emailIntent, "Send feedback via email"));
+    }
+    private void signOut() {
+
+        // Assuming you are using Firebase Authentication for sign-in/sign-out
+        FirebaseAuth.getInstance().signOut();
+
+        // Navigate to the login page
+        Intent loginIntent = new Intent(getActivity(), LoginActivity.class);
+        startActivity(loginIntent);
+        // Ensure that the user cannot navigate back to the SettingsFragment by pressing the back button
+        getActivity().finish();
+    }
+
+
+
 }

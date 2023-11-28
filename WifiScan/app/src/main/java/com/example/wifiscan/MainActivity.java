@@ -80,7 +80,7 @@ public class MainActivity extends AppCompatActivity {
                         break;
                     case "Settings":
                         getSupportFragmentManager().beginTransaction()
-                                .replace(R.id.fragment_layout, SettingsFragment.class, null, item.toString())
+                                .replace(R.id.fragment_layout, new SettingsFragment())
                                 .setReorderingAllowed(true)
                                 .addToBackStack(null)
                                 .commit();
@@ -88,6 +88,7 @@ public class MainActivity extends AppCompatActivity {
                     default:
                         return false;
                 }
+
 
                 Log.d("WifiScanDebug", String.format("fragment %s was created", item.toString()));
                 drawerLayout.closeDrawer(GravityCompat.START);
@@ -99,6 +100,7 @@ public class MainActivity extends AppCompatActivity {
                 .replace(R.id.fragment_layout, HomeFragment.class, null, "Home")
                 .setReorderingAllowed(true)
                 .commit();
+
     }
 
     private void SetupClient() {
