@@ -14,5 +14,4 @@
     <string name="grant_permissions">grant permissions</string>
     <string name="missing_permissions">missing permissions</string>
     <string name="scan_once">Scan</string>
-    <string name="feedback">Feedback</string>
 </resources>
