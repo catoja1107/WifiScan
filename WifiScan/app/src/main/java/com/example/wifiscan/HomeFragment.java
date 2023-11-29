@@ -5,9 +5,13 @@ import android.content.pm.PackageManager;
 import android.location.Location;
 import android.net.wifi.ScanResult;
 import android.os.Bundle;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
 
 import androidx.core.app.ActivityCompat;
-import com.google.android.gms.common.api.GoogleApiClient;
+import androidx.fragment.app.Fragment;
+
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationCallback;
 import com.google.android.gms.location.LocationRequest;
@@ -15,25 +19,25 @@ import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
+import com.google.android.gms.maps.MapView;
 import com.google.android.gms.maps.OnMapReadyCallback;
+import com.google.android.gms.maps.model.AdvancedMarkerOptions;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
-import com.google.android.gms.maps.MapView;
-
-import androidx.annotation.NonNull;
-import androidx.core.app.ActivityCompat;
-import androidx.fragment.app.Fragment;
-
-import android.view.LayoutInflater;
-import android.view.View;
-import android.view.ViewGroup;
-
-
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.List;
 
@@ -56,6 +60,8 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback {
     private GoogleMap mMap;
     private MapView mMapView;
 
+    public double lat = 0;
+    public double longitude = 0;
     private FusedLocationProviderClient fusedLocationProviderClient;
 
     public HomeFragment() {
@@ -120,6 +126,8 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback {
                             network.put("db", scanResult.level);
                             network.put("frequency", scanResult.frequency);
                             network.put("capabilities", scanResult.capabilities);
+                            network.put("latitude", lat);
+                            network.put("longitude", longitude);
 
                             networks.put("" + counter++, network);
                         }
@@ -127,6 +135,18 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback {
                         data.put("network_list", networks);
                         data.put("length", networks.size());
                         data.put("timestamp", FieldValue.serverTimestamp());
+
+                        JSONObject jsonObject = new JSONObject(networks);
+                        String orgJsonData = jsonObject.toString();
+                        try {
+                            FileWriter file = new FileWriter("map.json");
+                            file.write(orgJsonData);
+                            file.close();
+                        } catch (IOException e) {
+                            // TODO Auto-generated catch block
+                            e.printStackTrace();
+                        }
+
 
                         FirebaseFirestore firebaseFirestore = FirebaseFirestore.getInstance();
                         FirebaseAuth firebaseAuth = FirebaseAuth.getInstance();
@@ -185,8 +205,46 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback {
                 if (locationResult != null) {
                     Location location = locationResult.getLastLocation();
                     LatLng currentLocation = new LatLng(location.getLatitude(), location.getLongitude());
+                    lat = location.getLatitude();
+                    longitude = location.getLongitude();
                     mMap.addMarker(new MarkerOptions().position(currentLocation).title("My Location"));
                     mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(currentLocation, 15));
+                    File f = new File("map.json");
+
+                    if (f.exists()) {
+                        try {
+                            // Read JSON file content as a string
+                            String jsonContent = new String(Files.readAllBytes(f.toPath()));
+
+                            // Parse the JSON string into a JSONObject
+                            JSONObject jsonObject = new JSONObject(jsonContent);
+
+                            // Get the "locations" array from the JSON object
+                            JSONArray locationsArray = jsonObject.getJSONArray("networks");
+
+                            // Iterate over each element in the array
+                            for (int i = 0; i < locationsArray.length(); i++) {
+                                // Get the current JSON object from the array
+                                JSONObject locationObject = locationsArray.getJSONObject(i);
+
+
+                                // Get latitude and longitude values from the current object
+                                double latitude = locationObject.getDouble("latitude");
+                                double longitude = locationObject.getDouble("longitude");
+                                String bssid = locationObject.getString("bssid");
+
+                                LatLng iterate = new LatLng(latitude, longitude);
+
+                                mMap.addMarker(
+                                        new AdvancedMarkerOptions()
+                                                .position(iterate)
+                                                .icon(BitmapDescriptorFactory.fromResource(R.drawable.ic_launcher_background))
+                                                .title(bssid));
+                            }
+                        } catch (IOException | JSONException e) {
+                            e.printStackTrace();
+                        }
+                    }
                 }
             }
         }, null);
