@@ -4,7 +4,7 @@ import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 
-import androidx.appcompat.app.AppCompatDelegate;
+
 import androidx.preference.Preference;
 import androidx.preference.PreferenceFragmentCompat;
 import androidx.preference.SwitchPreferenceCompat;
@@ -17,11 +17,7 @@ public class SettingsFragment extends PreferenceFragmentCompat  {
     @Override
     public void onCreatePreferences(Bundle savedInstanceState, String rootKey) {
         setPreferencesFromResource(R.xml.preferences, rootKey);
-        // Set the initial state of the Dark Mode switch
-        SwitchPreferenceCompat darkModeSwitch = findPreference("dark_mode_preference");
-        if (darkModeSwitch != null) {
-            darkModeSwitch.setChecked(AppCompatDelegate.getDefaultNightMode() == AppCompatDelegate.MODE_NIGHT_YES);
-        }
+
     }
 
     @Override
