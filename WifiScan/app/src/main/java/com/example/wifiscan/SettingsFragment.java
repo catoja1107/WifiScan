@@ -34,6 +34,13 @@ public class SettingsFragment extends PreferenceFragmentCompat  {
         }
         else if("SO".equals(key)){
             signOut();
+            return true;
+        } else if ("data_replacement".equals(key)) {
+
+            return true;
+        } else if ("ignore_whitelisted".equals(key)) {
+
+            return true;
         }
 
 
