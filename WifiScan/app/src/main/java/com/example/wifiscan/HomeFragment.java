@@ -2,6 +2,7 @@ package com.example.wifiscan;
 
 import android.Manifest;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
 import android.location.Location;
 import android.net.wifi.ScanResult;
 import android.os.Bundle;
@@ -23,11 +24,16 @@ import com.google.android.gms.maps.MapView;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.model.AdvancedMarkerOptions;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
+import com.google.android.gms.maps.model.Circle;
+import com.google.android.gms.maps.model.CircleOptions;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.Query;
+import com.google.firebase.firestore.SetOptions;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -36,10 +42,13 @@ import org.json.JSONObject;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.lang.reflect.Array;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * A simple {@link Fragment} subclass.
@@ -113,23 +122,43 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback {
                         if (scanResults.size() == 0) {
                             return;
                         }
-
+                        FirebaseFirestore firebaseFirestore = FirebaseFirestore.getInstance();
+                        FirebaseAuth firebaseAuth = FirebaseAuth.getInstance();
                         HashMap<String, Object> data = new HashMap<>();
                         HashMap<String, Object> networks = new HashMap<>();
-
-
+                        HashMap<String, Object> count = new HashMap<>();
                         int counter = 0;
+                        int maxLevel = 0;
+                        int minLevel = 0;
                         for (ScanResult scanResult : scanResults) {
+
+
                             HashMap<Object, Object> network = new HashMap<>();
                             network.put("ssid", scanResult.SSID);
-                            network.put("bssid", scanResult.BSSID);
                             network.put("db", scanResult.level);
                             network.put("frequency", scanResult.frequency);
                             network.put("capabilities", scanResult.capabilities);
                             network.put("latitude", lat);
                             network.put("longitude", longitude);
 
-                            networks.put("" + counter++, network);
+                            count.put("" + counter++, network);
+                            count.put("timestamp", FieldValue.serverTimestamp());
+                            if (scanResult.level>=minLevel){
+                                count.put("minLevel", scanResult.level);
+                                count.put("edge", "lat: " + lat + ", lng: " + longitude);
+                            }
+                            if (scanResult.level<=maxLevel){
+                                count.put("maxLevel", scanResult.level);
+                                count.put("center", "lat: " + lat + ", lng: " + longitude);
+                            }
+
+                            networks.put("" + scanResult.BSSID, count);
+                            count.remove("" + counter);
+
+                            firebaseFirestore.collection("userdata")
+                                    .document(firebaseAuth.getUid())
+                                    .set(networks, SetOptions.merge());
+
                         }
 
                         data.put("network_list", networks);
@@ -148,11 +177,19 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback {
                         }
 
 
-                        FirebaseFirestore firebaseFirestore = FirebaseFirestore.getInstance();
-                        FirebaseAuth firebaseAuth = FirebaseAuth.getInstance();
+                        //FirebaseFirestore firebaseFirestore = FirebaseFirestore.getInstance();
+                        //FirebaseAuth firebaseAuth = FirebaseAuth.getInstance();
 
-                        firebaseFirestore.collection("userdata").document(firebaseAuth.getUid()).collection("networks")
-                                .add(data);
+                        //firebaseFirestore.collection("userdata")
+                          //      .document(firebaseAuth.getUid())
+                           //     .collection().update(data);
+
+                        // Create a reference to the cities collection
+                        //CollectionReference citiesRef = firebaseFirestore.collection("userdata")
+                         //       .document(firebaseAuth.getUid()).collection();
+
+// Create a query against the collection.
+                        //Query query = citiesRef.whereEqualTo("state", "CA");
                     }
                 });
 
@@ -199,16 +236,28 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback {
         locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
         locationRequest.setInterval(100000);
 
+
+
+
         fusedLocationProviderClient.requestLocationUpdates(locationRequest, new LocationCallback() {
             @Override
             public void onLocationResult(LocationResult locationResult) {
                 if (locationResult != null) {
                     Location location = locationResult.getLastLocation();
                     LatLng currentLocation = new LatLng(location.getLatitude(), location.getLongitude());
+
+                    Circle circle = googleMap.addCircle(new CircleOptions()
+                            .center(currentLocation)
+                            .radius(20)
+                            .strokeColor(Color.RED)
+                            .fillColor(Color.GREEN));
+                    circle.setTag("test123");
+
+
                     lat = location.getLatitude();
                     longitude = location.getLongitude();
                     mMap.addMarker(new MarkerOptions().position(currentLocation).title("My Location"));
-                    mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(currentLocation, 15));
+                    mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(currentLocation, 20));
                     File f = new File("map.json");
 
                     if (f.exists()) {
