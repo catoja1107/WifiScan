@@ -9,7 +9,9 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.TextView;
 
+import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
 import androidx.fragment.app.Fragment;
 
@@ -27,6 +29,8 @@ import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.Circle;
 import com.google.android.gms.maps.model.CircleOptions;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.MapStyleOptions;
+import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.CollectionReference;
@@ -48,6 +52,7 @@ import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -55,19 +60,27 @@ import java.util.Set;
  * Use the {@link HomeFragment#newInstance} factory method to
  * create an instance of this fragment.
  */
-public class HomeFragment extends Fragment implements OnMapReadyCallback {
+public class HomeFragment extends Fragment implements OnMapReadyCallback, GoogleMap.OnMapLongClickListener, GoogleMap.OnMarkerDragListener, GoogleMap.OnCircleClickListener {
 
     // TODO: Rename parameter arguments, choose names that match
     // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
     private static final String ARG_PARAM1 = "param1";
     private static final String ARG_PARAM2 = "param2";
 
+    public HashMap<String, Circle> circles = new HashMap<>();
+
     // TODO: Rename and change types of parameters
     private String mParam1;
     private String mParam2;
 
-    private GoogleMap mMap;
+    public GoogleMap mMap;
+
+    public HashMap<String, Object> count = new HashMap<>();
+    public HashMap<Object, Object> network = new HashMap<>();
+    public HashMap<String, Object> networks = new HashMap<>();
     private MapView mMapView;
+
+    public TextView mTagText;
 
     public double lat = 0;
     public double longitude = 0;
@@ -110,6 +123,7 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback {
 
         View view = inflater.inflate(R.layout.fragment_home, container, false);
         mMapView = (MapView) view.findViewById(R.id.mapView);
+        mTagText = (TextView) view.findViewById(R.id.tag_text);
         mMapView.onCreate(savedInstanceState);
         mMapView.getMapAsync(this);
         mMapView.onResume();
@@ -125,15 +139,15 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback {
                         FirebaseFirestore firebaseFirestore = FirebaseFirestore.getInstance();
                         FirebaseAuth firebaseAuth = FirebaseAuth.getInstance();
                         HashMap<String, Object> data = new HashMap<>();
-                        HashMap<String, Object> networks = new HashMap<>();
-                        HashMap<String, Object> count = new HashMap<>();
+
+
                         int counter = 0;
                         int maxLevel = 0;
                         int minLevel = 0;
                         for (ScanResult scanResult : scanResults) {
 
 
-                            HashMap<Object, Object> network = new HashMap<>();
+
                             network.put("ssid", scanResult.SSID);
                             network.put("db", scanResult.level);
                             network.put("frequency", scanResult.frequency);
@@ -145,11 +159,15 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback {
                             count.put("timestamp", FieldValue.serverTimestamp());
                             if (scanResult.level>=minLevel){
                                 count.put("minLevel", scanResult.level);
-                                count.put("edge", "lat: " + lat + ", lng: " + longitude);
+                                count.put("edgeLat", lat);
+                                count.put("edgeLong", longitude);
                             }
                             if (scanResult.level<=maxLevel){
                                 count.put("maxLevel", scanResult.level);
-                                count.put("center", "lat: " + lat + ", lng: " + longitude);
+                                count.put("centerLat", lat);
+                                count.put("centerLong", longitude);
+
+
                             }
 
                             networks.put("" + scanResult.BSSID, count);
@@ -158,6 +176,7 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback {
                             firebaseFirestore.collection("userdata")
                                     .document(firebaseAuth.getUid())
                                     .set(networks, SetOptions.merge());
+
 
                         }
 
@@ -203,10 +222,30 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback {
 
     }
 
-    @Override
-    public void onMapReady(GoogleMap googleMap) {
-        mMap = googleMap;
+    private static class CustomTag {
+        private final String description;
+        private int clickCount;
 
+        public CustomTag(String description) {
+            this.description = description;
+            clickCount = 0;
+        }
+
+        public void incrementClickCount() {
+            clickCount++;
+        }
+
+        @Override
+        public String toString() {
+            return "The " + description + " has been clicked " + clickCount + " times.";
+        }
+    }
+
+    @Override
+    public void onMapReady(GoogleMap mMap) {
+
+        mMap.setOnMarkerDragListener(this);
+        mMap.setOnMapLongClickListener(this);
         // Check and request location permission
         if (ActivityCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
                 && ActivityCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
@@ -216,6 +255,16 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback {
 
         // Enable My Location layer on the map
         mMap.setMyLocationEnabled(true);
+        mMap.setOnCircleClickListener(this);
+
+
+        //Double lat = Double.parseDouble(networks.get("centerLat").toString());
+        //Double longitude = Double.parseDouble(networks.get("centerLong").toString());
+
+
+
+
+
 
         // Initialize FusedLocationProviderClient
         fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(requireContext());
@@ -226,15 +275,15 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback {
                     if (location != null) {
                         // Get the current location and move the camera to that location
                         LatLng currentLocation = new LatLng(location.getLatitude(), location.getLongitude());
-                        mMap.addMarker(new MarkerOptions().position(currentLocation).title("My Location"));
-                        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(currentLocation, 15));
+                        //mMap.addMarker(new MarkerOptions().position(currentLocation).title("My Location"));
+                        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(currentLocation, 20));
                     }
                 });
 
         // Set up location updates
         LocationRequest locationRequest = new LocationRequest();
         locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
-        locationRequest.setInterval(100000);
+        locationRequest.setInterval(1000);
 
 
 
@@ -246,18 +295,26 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback {
                     Location location = locationResult.getLastLocation();
                     LatLng currentLocation = new LatLng(location.getLatitude(), location.getLongitude());
 
-                    Circle circle = googleMap.addCircle(new CircleOptions()
-                            .center(currentLocation)
-                            .radius(20)
-                            .strokeColor(Color.RED)
-                            .fillColor(Color.GREEN));
-                    circle.setTag("test123");
+                    LatLng center = new LatLng(lat, longitude);
+
+                    for (Map.Entry<String, Object> entry :
+                            networks.entrySet()) {
+                        String bssid = entry.getKey();
+                        //Integer rad = (Integer) entry.getValue();
+
+                        circles.put(bssid, mMap.addCircle(new CircleOptions()
+                                .center(center)
+                                .radius(20)
+                                .strokeColor(Color.RED)
+                                .fillColor(Color.GREEN)));
+
+                        //circles.get("bssid").setTag(bssid);
+                    }
+
 
 
                     lat = location.getLatitude();
                     longitude = location.getLongitude();
-                    mMap.addMarker(new MarkerOptions().position(currentLocation).title("My Location"));
-                    mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(currentLocation, 20));
                     File f = new File("map.json");
 
                     if (f.exists()) {
@@ -296,6 +353,38 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback {
                     }
                 }
             }
+
         }, null);
+
+    }
+
+    private void onClick(CustomTag tag) {
+        tag.incrementClickCount();
+        mTagText.setText(tag.toString());
+    }
+
+    @Override
+    public void onMapLongClick(@NonNull LatLng latLng) {
+
+    }
+
+    @Override
+    public void onMarkerDrag(@NonNull Marker marker) {
+
+    }
+
+    @Override
+    public void onMarkerDragEnd(@NonNull Marker marker) {
+
+    }
+
+    @Override
+    public void onMarkerDragStart(@NonNull Marker marker) {
+
+    }
+
+    @Override
+    public void onCircleClick(@NonNull Circle circle) {
+        onClick((CustomTag) circle.getTag());
     }
 }

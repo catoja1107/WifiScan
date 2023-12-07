@@ -9,6 +9,13 @@
     android:orientation="vertical"
     tools:context=".HomeFragment">
 
+    <TextView
+        android:id="@+id/tag_text"
+        android:layout_width="match_parent"
+        android:layout_height="fill_parent"
+        android:layout_weight="0.70"
+        android:text="test" />
+
     <com.google.android.gms.maps.MapView
         android:id="@+id/mapView"
         android:layout_width="match_parent"
@@ -20,8 +27,7 @@
         style="@style/Widget.AppCompat.Button"
         android:layout_width="match_parent"
         android:layout_height="fill_parent"
-        android:layout_weight="0.8"
-        android:onClick="scanOnceButton"
+        android:layout_weight="0.675"
         android:text="Filter" />
 
     <Button
@@ -29,7 +35,7 @@
         style="@style/Widget.AppCompat.Button"
         android:layout_width="match_parent"
         android:layout_height="fill_parent"
-        android:layout_weight="0.8"
+        android:layout_weight="0.675"
         android:onClick="scanOnceButton"
         android:text="@string/scan_once" />
 </LinearLayout>
