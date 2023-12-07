@@ -301,13 +301,17 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback, Google
                             networks.entrySet()) {
                         String bssid = entry.getKey();
                         //Integer rad = (Integer) entry.getValue();
+                        if(!circles.containsKey(bssid)) {
+                            circles.put(bssid, mMap.addCircle(new CircleOptions()
+                                    .center(center)
+                                    .radius(20)
+                                    .strokeColor(Color.RED)
+                                    .fillColor(Color.GREEN)));
+                        }
 
-                        circles.put(bssid, mMap.addCircle(new CircleOptions()
-                                .center(center)
-                                .radius(20)
-                                .strokeColor(Color.RED)
-                                .fillColor(Color.GREEN)));
-
+                        if(circles.containsKey(bssid) && circles.get(bssid).getCenter()!=center) {
+                            circles.get(bssid).setCenter(center);
+                        }
                         //circles.get("bssid").setTag(bssid);
                     }
 
