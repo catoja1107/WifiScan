@@ -13,6 +13,7 @@ import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
+import android.widget.Toast;
 
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FieldValue;
@@ -42,7 +43,6 @@ public class WifiListFragment extends Fragment {
     private String mParam1;
     private String mParam2;
     private ListView wifiListView;
-    private List<ScanResult> lastScanResults;
 
     public WifiListFragment() {
         // Required empty public constructor
@@ -78,104 +78,65 @@ public class WifiListFragment extends Fragment {
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
+
         View view = inflater.inflate(R.layout.fragment_wifi_list, container, false);
-
-        // ...
-
-        // Initialize the ListView
         wifiListView = view.findViewById(R.id.wifiList);
+        ArrayList<String> bssidList = new ArrayList<>();
+        HashMap<String, Object> bucket = null;
 
-        view.findViewById(R.id.loadbtn).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                FirebaseFirestore firebaseFirestore = FirebaseFirestore.getInstance();
-                FirebaseAuth firebaseAuth = FirebaseAuth.getInstance();
-
-
-                firebaseFirestore.collection("userdata")
-                        .document(firebaseAuth.getUid())
-                        .get()
-                        .addOnSuccessListener(documentSnapshot -> {
-                            if (documentSnapshot.exists()) {
-                                // Data found, update the WiFi ListView
-                                HashMap<String, Object> data = (HashMap<String, Object>) documentSnapshot.getData();
-                                updateWifiListViewFromFirebase(data);
-                            } else {
-                                // No data found
-                                // Handle this case as needed
-                            }
-                        })
-                        .addOnFailureListener(e -> {
-                            // Handle failures (e.g., network issues, permission issues)
-                            e.printStackTrace();
-                        });
+        for(String key : Bucket.buckets.keySet()) {
+            bucket = Bucket.getBucket(key);
+            for(String bssid : bucket.keySet()) {
+                if(bssid.equals("count")) continue;
+                bssidList.add(bssid);
             }
-        });
+        }
 
+        if(bucket == null) {
+            Toast.makeText(getActivity(), "could not load bucket", Toast.LENGTH_LONG);
+            return view;
+        }
+
+        wifiListView.setAdapter(new ArrayAdapter<String>(requireContext(), android.R.layout.simple_list_item_1, bssidList));
         wifiListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
-            public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
-                // Get the clicked WiFi network details
-                String ssid = (String) wifiListView.getItemAtPosition(i);
-                ScanResult clickedNetwork = findClickedNetwork(ssid);
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                //temporary solution. will need to create tuples to get bucket key. this will only work with 1 bucket
+                HashMap<String, Object> bucket = null;
 
-
-                if (clickedNetwork != null) {
-                    showNetworkDetailsDialog(clickedNetwork);
+                for(String key : Bucket.buckets.keySet()) {
+                    bucket = Bucket.getBucket(key);
                 }
+
+                if(bucket == null) {
+                    Toast.makeText(getActivity(), "could not load bucket inside handler", Toast.LENGTH_LONG);
+                    return;
+                }
+
+                String bssid = bssidList.get(position);
+                HashMap<String, Object> data = (HashMap<String, Object>) bucket.get(bssid);
+                Long index = ((Number)data.get("count")).longValue() - 1;
+                HashMap<String, Object> network = (HashMap<String, Object>) data.get("" + index);
+
+                String ssid = (String) network.get("ssid");
+                String latitude = network.get("latitude").toString();
+                String longitude = network.get("longitude").toString();
+                String db = network.get("db").toString();
+
+                new AlertDialog.Builder(getActivity())
+                        .setTitle(bssid)
+                        .setMessage(String.format("BSSID %s\nSSID: %s\nLatitude: %s\nLongitude: %s\nDB: %s\n", bssid, ssid, latitude, longitude, db))
+                        .setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+
+                            }
+                        })
+                        .create().show();
             }
         });
+
         // Inflate the layout for this fragment
         return view;
     }
-    // Method to update ListView with scan results
-    private void updateWifiListViewFromFirebase(HashMap<String, Object> data) {
-        // Extract WiFi network names (SSIDs) from the data
-        List<String> wifiNetworks = new ArrayList<>();
-        if (data.containsKey("networks")) {
-            HashMap<String, Object> networks = (HashMap<String, Object>) data.get("networks");
-            for (String bssid : networks.keySet()) {
-                HashMap<String, Object> networkData = (HashMap<String, Object>) networks.get(bssid);
-                wifiNetworks.add(networkData.get("ssid").toString());
-
-            }
-        }
-
-        // Use an ArrayAdapter to populate the ListView
-        ArrayAdapter<String> adapter = new ArrayAdapter<>(requireContext(), android.R.layout.simple_list_item_1, wifiNetworks);
-        wifiListView.setAdapter(adapter);
-    }
-
-    // Method to find the clicked network in the scan results
-    private ScanResult findClickedNetwork(String ssid) {
-
-        for (ScanResult scanResult : lastScanResults) {
-            if (scanResult.SSID.equals(ssid)) {
-                return scanResult;
-            }
-        }
-        return null;
-    }
-
-    // Method to show more details in a dialog
-    private void showNetworkDetailsDialog(ScanResult scanResult) {
-        AlertDialog.Builder builder = new AlertDialog.Builder(requireContext());
-        builder.setTitle("Network Details");
-        builder.setMessage("SSID: " + scanResult.SSID + "\n"
-                + "BSSID: " + scanResult.BSSID + "\n"
-                + "Signal Strength: " + scanResult.level + " dBm" + "\n"
-                + "Frequency: " + scanResult.frequency + " MHz" + "\n"
-                + "Capabilities: " + scanResult.capabilities +"\n"
-                + scanResult.channelWidth);
-        builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialogInterface, int i) {
-                // Handle OK button click if needed
-            }
-        });
-
-        AlertDialog dialog = builder.create();
-        dialog.show();
-    }
-
 }
