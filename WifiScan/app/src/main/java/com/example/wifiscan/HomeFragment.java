@@ -317,18 +317,23 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback, Google
                         Double max_lat = ((Number) network.get("max_latitude")).doubleValue();
                         Double max_long = ((Number) network.get("max_longitude")).doubleValue();
 
+                        Double delta_lat = max_lat-min_lat;
+                        Double delta_long = max_long-min_long;
+                        Integer pythag = (int)(Math.sqrt(delta_lat*delta_lat)+(delta_long*delta_long));
+                        LatLng apLocation = new LatLng(max_lat, max_long);
+
                         if (!circles.containsKey(bssid)) {
                             circles.put(bssid, mMap.addCircle(new CircleOptions()
-                                    .center(currentLocation)
-                                    .radius(20)
-                                    .strokeColor(Color.RED)
+                                    .center(apLocation)
+                                    .radius((pythag+2)*5)
+                                    .strokeColor(Color.BLUE)
                                     .fillColor(Color.GREEN)));
                             circles.get(bssid).setClickable(true);
                             circles.get(bssid).setTag(new CustomTag(bssid));
                         }
 
-                        if (circles.containsKey(bssid) && circles.get(bssid).getCenter() != currentLocation) {
-                            circles.get(bssid).setCenter(currentLocation);
+                        if (circles.containsKey(bssid) && circles.get(bssid).getCenter() != apLocation) {
+                            circles.get(bssid).setCenter(apLocation);
                         }
                     }
 
