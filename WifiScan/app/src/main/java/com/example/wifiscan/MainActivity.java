@@ -8,6 +8,7 @@ import android.util.Log;
 import android.view.MenuItem;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.ActionBarDrawerToggle;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
@@ -21,9 +22,13 @@ import com.google.android.gms.tasks.Task;
 import com.google.android.material.navigation.NavigationView;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.CollectionReference;
+import com.google.firebase.firestore.DocumentChange;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.EventListener;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.FirebaseFirestoreException;
+import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.QuerySnapshot;
 import com.google.firebase.firestore.SetOptions;
 
@@ -161,6 +166,8 @@ public class MainActivity extends AppCompatActivity {
                                 if(task.isSuccessful()) {
                                     Bucket.buckets.put(key, task.getResult().getData());
                                     Log.d(Bucket.DEBUG_TAG, String.format("loaded bucket: %s", key));
+
+                                    //Bucket.createSnapshotListener(key);
                                 }
                             }
                         });
@@ -168,5 +175,32 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         });
+
+//        networksRef.addSnapshotListener(new EventListener<QuerySnapshot>() {
+//            @Override
+//            public void onEvent(@Nullable QuerySnapshot snapshot, @Nullable FirebaseFirestoreException error) {
+//                if(error != null) {
+//                    Log.w(Bucket.DEBUG_TAG, error.toString());
+//                    return;
+//                }
+//
+//                if(snapshot.getMetadata().hasPendingWrites()) {
+//                    return;
+//                }
+//
+//                for(DocumentChange document : snapshot.getDocumentChanges()) {
+//                    if(document.getDocument().getId().equals("bucket_index")) {
+//                        Bucket.bucket_index = (HashMap<String, Object>) document.getDocument().getData();
+//                        continue;
+//                    }
+//
+//                    if(document.getType() != DocumentChange.Type.ADDED) {
+//                        break;
+//                    }
+//
+//                    Log.d(Bucket.DEBUG_TAG, String.format("collection snapshot listener fired for %s", document.getDocument().getId()));
+//                }
+//            }
+//        });
     }
 }

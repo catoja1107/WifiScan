@@ -143,7 +143,6 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback, Google
 
                 FirebaseFirestore firebaseFirestore = FirebaseFirestore.getInstance();
                 FirebaseAuth firebaseAuth = FirebaseAuth.getInstance();
-                Bucket.isInIndex("1234");
 
                 WifiScanner wifiScanner = new WifiScanner(getActivity(), new WifiScannerListener() {
                     @Override
@@ -153,6 +152,11 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback, Google
                         }
 
                         for (ScanResult scanResult : scanResults) {
+                            String bucketKey = Bucket.isInIndex(scanResult.BSSID);
+                            if(bucketKey == null) {
+                                //need to create new bucket here if over 100
+                            }
+
 
                         }
                     }
