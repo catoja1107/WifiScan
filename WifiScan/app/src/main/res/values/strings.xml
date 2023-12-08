@@ -1,6 +1,7 @@
 <resources>
     <string name="app_name">WifiScan</string>
     <string name="home_menu">Home</string>
+    <string name="list_menu">Wifi-List</string>
     <string name="performance_menu">Performance</string>
     <string name="maps_menu">Maps</string>
     <string name="graphs_menu">Graphs</string>
