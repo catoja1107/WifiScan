@@ -11,6 +11,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
@@ -89,8 +90,6 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback, Google
     private HashMap<String, Object> networks = new HashMap<>();
     private FusedLocationProviderClient fusedLocationProviderClient;
 
-    private String DEBUG_TAG = "WifiScanDebug";
-
     public HomeFragment() {
         // Required empty public constructor
     }
@@ -133,49 +132,28 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback, Google
         mMapView.onCreate(savedInstanceState);
         mMapView.getMapAsync(this);
         mMapView.onResume();
+
         view.findViewById(R.id.scanOnceButton).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                if(Bucket.bucket_index == null) {
+                    Toast.makeText(getActivity(), "bucket_index hasn't been loaded yet", Toast.LENGTH_LONG);
+                    return;
+                }
+
+                FirebaseFirestore firebaseFirestore = FirebaseFirestore.getInstance();
+                FirebaseAuth firebaseAuth = FirebaseAuth.getInstance();
+                Bucket.isInIndex("1234");
+
                 WifiScanner wifiScanner = new WifiScanner(getActivity(), new WifiScannerListener() {
                     @Override
                     public void onWifiScanResult(List<ScanResult> scanResults) {
                         if (scanResults.size() == 0) {
                             return;
                         }
-                        FirebaseFirestore firebaseFirestore = FirebaseFirestore.getInstance();
-                        FirebaseAuth firebaseAuth = FirebaseAuth.getInstance();
-                        HashMap<String, Object> data = new HashMap<>();
-
-                        CollectionReference networksRef = firebaseFirestore.collection("userdata").document(firebaseAuth.getUid()).collection("networks");
-
-                        networksRef.get().addOnSuccessListener(new OnSuccessListener<QuerySnapshot>() {
-                            @Override
-                            public void onSuccess(QuerySnapshot queryDocumentSnapshots) {
-                                if(queryDocumentSnapshots.isEmpty()) {
-                                    HashMap<String, Object> bucketData = new HashMap<>();
-                                    bucketData.put("count", 0);
-
-                                    DocumentReference bucket = networksRef.document();
-                                    bucket.set(bucketData);
-
-                                    HashMap<String, Object> bucketIndex = new HashMap<>();
-                                    HashMap<String, Object> bucketIData = new HashMap<>();
-                                    bucketIData.put("lists", new ArrayList<>());
-                                    bucketIData.put("count", 0);
-                                    bucketIndex.put(bucket.getId(), bucketIData);
-
-                                    networksRef.document("bucket_index").set(bucketIndex);
-                                }
-                            }
-                        });
-
 
                         for (ScanResult scanResult : scanResults) {
-//                            HashMap<String, Object> bucket = new HashMap<>();
-//
-//                            firebaseFirestore.collection("userdata")
-//                                    .document(firebaseAuth.getUid())
-//                                    .set(networks, SetOptions.merge());
+
                         }
                     }
                 });
