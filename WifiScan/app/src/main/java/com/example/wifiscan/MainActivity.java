@@ -149,6 +149,8 @@ public class MainActivity extends AppCompatActivity {
                     networksRef.document("bucket_index").set(bucketIndex);
 
                     setupBuckets();
+                } else {
+                    setupBuckets();
                 }
             }
         });
