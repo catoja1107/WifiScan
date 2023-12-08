@@ -73,6 +73,7 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback, Google
     // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
     private static final String ARG_PARAM1 = "param1";
     private static final String ARG_PARAM2 = "param2";
+    public HashMap<String, Object> bucketData = new HashMap<>();
 
     public HashMap<String, Circle> circles = new HashMap<>();
 
@@ -168,7 +169,7 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback, Google
                                 break;
                             }
 
-                            HashMap<String, Object> bucketData = new HashMap<>();
+
                             HashMap<String, Object> network = new HashMap<>();
 
                             network.put("ssid", scanResult.SSID);
@@ -182,13 +183,13 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback, Google
 
                                 bucketData.put("" + count, network);
 
-                                if(((Number)bucketData.get("min_level")).longValue() <= scanResult.level) {
+                                if(((Number)bucketData.get("min_level")).longValue() >= scanResult.level) {
                                     bucketData.put("min_level", scanResult.level);
                                     bucketData.put("min_latitude", lat);
                                     bucketData.put("min_longitude", longitude);
                                 }
 
-                                if(((Number)bucketData.get("max_level")).longValue() >= scanResult.level) {
+                                if(((Number)bucketData.get("max_level")).longValue() <= scanResult.level) {
                                     bucketData.put("max_level", scanResult.level);
                                     bucketData.put("max_latitude", lat);
                                     bucketData.put("max_longitude", longitude);
@@ -244,7 +245,7 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback, Google
 
         @Override
         public String toString() {
-            return "The " + description + " has been clicked " + clickCount + " times.";
+            return "AP " + description + " has been clicked " + clickCount + " times.";
         }
     }
 
@@ -293,27 +294,31 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback, Google
                     Location location = locationResult.getLastLocation();
                     LatLng currentLocation = new LatLng(location.getLatitude(), location.getLongitude());
 
-                    LatLng center = new LatLng(lat, longitude);
+                    String bucketKey = Bucket.isInIndex("placeholder");
 
-                    for (Map.Entry<String, Object> entry :
-                            networks.entrySet()) {
-                        String bssid = entry.getKey();
+                    for (Map.Entry<String, Object> set :
+                            bucketData.entrySet()) {
+                        String currentBssid = set.getValue().toString();
+                        String test = currentBssid.toString();
+                        //LatLng center = new LatLng(bucketData.get(currentBssid.toString()));
                         //Integer rad = (Integer) entry.getValue();
-                        if (!circles.containsKey(bssid)) {
-                            circles.put(bssid, mMap.addCircle(new CircleOptions()
-                                    .center(center)
+                        if (!circles.containsKey(currentBssid)) {
+                            circles.put(currentBssid, mMap.addCircle(new CircleOptions()
+                                    .center(currentLocation)
                                     .radius(20)
                                     .strokeColor(Color.RED)
                                     .fillColor(Color.GREEN)));
-                            circles.get(bssid).setClickable(true);
-                            circles.get(bssid).setTag(new CustomTag(bssid));
+                            circles.get(currentBssid).setClickable(true);
+                            circles.get(currentBssid).setTag(new CustomTag(currentBssid));
                         }
 
-                        if (circles.containsKey(bssid) && circles.get(bssid).getCenter() != center) {
-                            circles.get(bssid).setCenter(center);
+                        if (circles.containsKey(currentBssid) && circles.get(currentBssid).getCenter() != currentLocation) {
+                            circles.get(currentBssid).setCenter(currentLocation);
                         }
                         //circles.get("bssid").setTag(bssid);
                     }
+
+
 
                     lat = location.getLatitude();
                     longitude = location.getLongitude();
