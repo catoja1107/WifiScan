@@ -78,6 +78,16 @@ public class MainActivity extends AppCompatActivity {
                                 .addToBackStack(null)
                                 .commit();
                         break;
+
+
+                    case "Wifi-List":
+                        getSupportFragmentManager().beginTransaction()
+                                .replace(R.id.fragment_layout, WifiListFragment.class, null, item.toString())
+                                .setReorderingAllowed(true)
+                                .addToBackStack(null)
+                                .commit();
+                        break;
+
                     case "Settings":
                         getSupportFragmentManager().beginTransaction()
                                 .replace(R.id.fragment_layout, SettingsFragment.class, null, item.toString())
