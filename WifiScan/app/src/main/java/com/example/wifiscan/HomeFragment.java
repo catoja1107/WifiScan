@@ -6,6 +6,7 @@ import android.graphics.Color;
 import android.location.Location;
 import android.net.wifi.ScanResult;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -33,6 +34,9 @@ import com.google.android.gms.maps.model.MapStyleOptions;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.ValueEventListener;
 import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
@@ -67,7 +71,7 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback, Google
     private static final String ARG_PARAM1 = "param1";
     private static final String ARG_PARAM2 = "param2";
 
-    public HashMap<String, Circle> circles = new HashMap<>();
+    public HashMap < String, Circle > circles = new HashMap < > ();
 
     // TODO: Rename and change types of parameters
     private String mParam1;
@@ -75,9 +79,9 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback, Google
 
     public GoogleMap mMap;
 
-    public HashMap<String, Object> count = new HashMap<>();
-    public HashMap<Object, Object> network = new HashMap<>();
-    public HashMap<String, Object> networks = new HashMap<>();
+    public HashMap < String, Object > count = new HashMap < > ();
+    public HashMap < Object, Object > network = new HashMap < > ();
+    public HashMap < String, Object > networks = new HashMap < > ();
     private MapView mMapView;
 
     public TextView mTagText;
@@ -132,22 +136,22 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback, Google
             public void onClick(View view) {
                 WifiScanner wifiScanner = new WifiScanner(getActivity(), new WifiScannerListener() {
                     @Override
-                    public void onWifiScanResult(List<ScanResult> scanResults) {
+                    public void onWifiScanResult(List < ScanResult > scanResults) {
                         if (scanResults.size() == 0) {
                             return;
                         }
                         FirebaseFirestore firebaseFirestore = FirebaseFirestore.getInstance();
                         FirebaseAuth firebaseAuth = FirebaseAuth.getInstance();
-                        HashMap<String, Object> data = new HashMap<>();
-
+                        HashMap < String, Object > data = new HashMap < > ();
 
                         int counter = 0;
-                        int maxLevel = 0;
-                        int minLevel = 0;
-                        for (ScanResult scanResult : scanResults) {
 
-
-
+                        for (ScanResult scanResult: scanResults) {
+                            firebaseFirestore.collection("userdata")
+                                    .document(firebaseAuth.getUid())
+                                    .get();
+                            int maxLevel = 0;
+                            int minLevel = 0;
                             network.put("ssid", scanResult.SSID);
                             network.put("db", scanResult.level);
                             network.put("frequency", scanResult.frequency);
@@ -157,17 +161,16 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback, Google
 
                             count.put("" + counter++, network);
                             count.put("timestamp", FieldValue.serverTimestamp());
-                            if (scanResult.level>=minLevel){
+                            if (scanResult.level >= minLevel) {
                                 count.put("minLevel", scanResult.level);
                                 count.put("edgeLat", lat);
                                 count.put("edgeLong", longitude);
                             }
-                            if (scanResult.level<=maxLevel){
+
+                            if (scanResult.level <= maxLevel) {
                                 count.put("maxLevel", scanResult.level);
                                 count.put("centerLat", lat);
                                 count.put("centerLong", longitude);
-
-
                             }
 
                             networks.put("" + scanResult.BSSID, count);
@@ -176,8 +179,6 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback, Google
                             firebaseFirestore.collection("userdata")
                                     .document(firebaseAuth.getUid())
                                     .set(networks, SetOptions.merge());
-
-
                         }
 
                         data.put("network_list", networks);
@@ -195,30 +196,27 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback, Google
                             e.printStackTrace();
                         }
 
-
                         //FirebaseFirestore firebaseFirestore = FirebaseFirestore.getInstance();
                         //FirebaseAuth firebaseAuth = FirebaseAuth.getInstance();
 
                         //firebaseFirestore.collection("userdata")
-                          //      .document(firebaseAuth.getUid())
-                           //     .collection().update(data);
+                        //      .document(firebaseAuth.getUid())
+                        //     .collection().update(data);
 
                         // Create a reference to the cities collection
                         //CollectionReference citiesRef = firebaseFirestore.collection("userdata")
-                         //       .document(firebaseAuth.getUid()).collection();
+                        //       .document(firebaseAuth.getUid()).collection();
 
-// Create a query against the collection.
+                        // Create a query against the collection.
                         //Query query = citiesRef.whereEqualTo("state", "CA");
                     }
                 });
-
 
                 wifiScanner.executeScanOnce();
             }
         });
 
         return view;
-
 
     }
 
@@ -247,8 +245,8 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback, Google
         mMap.setOnMarkerDragListener(this);
         mMap.setOnMapLongClickListener(this);
         // Check and request location permission
-        if (ActivityCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
-                && ActivityCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+        if (ActivityCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
+                ActivityCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             // TODO: Request permissions here
             return;
         }
@@ -257,14 +255,8 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback, Google
         mMap.setMyLocationEnabled(true);
         mMap.setOnCircleClickListener(this);
 
-
         //Double lat = Double.parseDouble(networks.get("centerLat").toString());
         //Double longitude = Double.parseDouble(networks.get("centerLong").toString());
-
-
-
-
-
 
         // Initialize FusedLocationProviderClient
         fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(requireContext());
@@ -285,9 +277,6 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback, Google
         locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
         locationRequest.setInterval(1000);
 
-
-
-
         fusedLocationProviderClient.requestLocationUpdates(locationRequest, new LocationCallback() {
             @Override
             public void onLocationResult(LocationResult locationResult) {
@@ -297,11 +286,11 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback, Google
 
                     LatLng center = new LatLng(lat, longitude);
 
-                    for (Map.Entry<String, Object> entry :
+                    for (Map.Entry < String, Object > entry:
                             networks.entrySet()) {
                         String bssid = entry.getKey();
                         //Integer rad = (Integer) entry.getValue();
-                        if(!circles.containsKey(bssid)) {
+                        if (!circles.containsKey(bssid)) {
                             circles.put(bssid, mMap.addCircle(new CircleOptions()
                                     .center(center)
                                     .radius(20)
@@ -309,13 +298,11 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback, Google
                                     .fillColor(Color.GREEN)));
                         }
 
-                        if(circles.containsKey(bssid) && circles.get(bssid).getCenter()!=center) {
+                        if (circles.containsKey(bssid) && circles.get(bssid).getCenter() != center) {
                             circles.get(bssid).setCenter(center);
                         }
                         //circles.get("bssid").setTag(bssid);
                     }
-
-
 
                     lat = location.getLatitude();
                     longitude = location.getLongitude();
@@ -336,7 +323,6 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback, Google
                             for (int i = 0; i < locationsArray.length(); i++) {
                                 // Get the current JSON object from the array
                                 JSONObject locationObject = locationsArray.getJSONObject(i);
-
 
                                 // Get latitude and longitude values from the current object
                                 double latitude = locationObject.getDouble("latitude");
