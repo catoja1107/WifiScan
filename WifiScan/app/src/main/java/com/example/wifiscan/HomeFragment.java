@@ -11,6 +11,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
@@ -33,14 +34,15 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MapStyleOptions;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.database.DataSnapshot;
-import com.google.firebase.database.DatabaseError;
-import com.google.firebase.database.ValueEventListener;
 import com.google.firebase.firestore.CollectionReference;
+import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.Query;
+import com.google.firebase.firestore.QuerySnapshot;
 import com.google.firebase.firestore.SetOptions;
 
 import org.json.JSONArray;
@@ -53,6 +55,7 @@ import java.io.IOException;
 import java.lang.reflect.Array;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -70,24 +73,22 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback, Google
     // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
     private static final String ARG_PARAM1 = "param1";
     private static final String ARG_PARAM2 = "param2";
+    public HashMap<String, Object> bucketData = new HashMap<>();
 
-    public HashMap < String, Circle > circles = new HashMap < > ();
+    public HashMap<String, Circle> circles = new HashMap<>();
 
     // TODO: Rename and change types of parameters
     private String mParam1;
     private String mParam2;
 
     public GoogleMap mMap;
-
-    public HashMap < String, Object > count = new HashMap < > ();
-    public HashMap < Object, Object > network = new HashMap < > ();
-    public HashMap < String, Object > networks = new HashMap < > ();
     private MapView mMapView;
 
     public TextView mTagText;
 
     public double lat = 0;
     public double longitude = 0;
+    private HashMap<String, Object> networks = new HashMap<>();
     private FusedLocationProviderClient fusedLocationProviderClient;
 
     public HomeFragment() {
@@ -132,84 +133,92 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback, Google
         mMapView.onCreate(savedInstanceState);
         mMapView.getMapAsync(this);
         mMapView.onResume();
+
         view.findViewById(R.id.scanOnceButton).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                if(Bucket.bucket_index == null) {
+                    Toast.makeText(getActivity(), "bucket_index hasn't been loaded yet", Toast.LENGTH_LONG);
+                    return;
+                }
+
+                FirebaseFirestore firebaseFirestore = FirebaseFirestore.getInstance();
+                FirebaseAuth firebaseAuth = FirebaseAuth.getInstance();
+                String uid = firebaseAuth.getUid();
+
                 WifiScanner wifiScanner = new WifiScanner(getActivity(), new WifiScannerListener() {
                     @Override
-                    public void onWifiScanResult(List < ScanResult > scanResults) {
+                    public void onWifiScanResult(List<ScanResult> scanResults) {
                         if (scanResults.size() == 0) {
                             return;
                         }
-                        FirebaseFirestore firebaseFirestore = FirebaseFirestore.getInstance();
-                        FirebaseAuth firebaseAuth = FirebaseAuth.getInstance();
-                        HashMap < String, Object > data = new HashMap < > ();
 
-                        int counter = 0;
+                        //theres only going to be one bucket for testing so im just adding placeholder
+                        String bucketKey = Bucket.isInIndex("placeholder");
+                        ArrayList<String> bssidList = (ArrayList<String>) ((HashMap<String, Object>)Bucket.bucket_index.get(bucketKey)).get("lists");
 
-                        for (ScanResult scanResult: scanResults) {
-                            firebaseFirestore.collection("userdata")
-                                    .document(firebaseAuth.getUid())
-                                    .get();
-                            int maxLevel = 0;
-                            int minLevel = 0;
+                        HashMap<String, Object> bucket = Bucket.getBucket(bucketKey);
+                        for (ScanResult scanResult : scanResults) {
+                            if(!bssidList.contains(scanResult.BSSID)) {
+                                bssidList.add(scanResult.BSSID);
+                            }
+
+                            bucketKey = Bucket.isInIndex(scanResult.BSSID);
+                            if(bucketKey == null) {
+                                //need to create new bucket here if over 100
+                                break;
+                            }
+
+
+                            HashMap<String, Object> network = new HashMap<>();
+
                             network.put("ssid", scanResult.SSID);
                             network.put("db", scanResult.level);
-                            network.put("frequency", scanResult.frequency);
-                            network.put("capabilities", scanResult.capabilities);
                             network.put("latitude", lat);
                             network.put("longitude", longitude);
 
-                            count.put("" + counter++, network);
-                            count.put("timestamp", FieldValue.serverTimestamp());
-                            if (scanResult.level >= minLevel) {
-                                count.put("minLevel", scanResult.level);
-                                count.put("edgeLat", lat);
-                                count.put("edgeLong", longitude);
+                            if(bucket.containsKey(scanResult.BSSID)) {
+                                bucketData = (HashMap<String, Object>) bucket.get(scanResult.BSSID);
+                                Long count = ((Number)bucketData.get("count")).longValue();
+
+                                bucketData.put("" + count, network);
+
+                                if(((Number)bucketData.get("min_level")).longValue() >= scanResult.level) {
+                                    bucketData.put("min_level", scanResult.level);
+                                    bucketData.put("min_latitude", lat);
+                                    bucketData.put("min_longitude", longitude);
+                                }
+
+                                if(((Number)bucketData.get("max_level")).longValue() <= scanResult.level) {
+                                    bucketData.put("max_level", scanResult.level);
+                                    bucketData.put("max_latitude", lat);
+                                    bucketData.put("max_longitude", longitude);
+                                }
+
+                                count++;
+                                bucketData.put("count", count);
+                            } else {
+                                bucketData.put("0", network);
+                                bucketData.put("count", 1);
+                                bucketData.put("min_level", scanResult.level); //can only be determined after second data so we're using the first
+                                bucketData.put("min_latitude", lat);
+                                bucketData.put("min_longitude", longitude);
+                                bucketData.put("max_level", scanResult.level);
+                                bucketData.put("max_latitude", lat);
+                                bucketData.put("max_longitude", longitude);
+                                bucket.put(scanResult.BSSID, bucketData);
                             }
-
-                            if (scanResult.level <= maxLevel) {
-                                count.put("maxLevel", scanResult.level);
-                                count.put("centerLat", lat);
-                                count.put("centerLong", longitude);
-                            }
-
-                            networks.put("" + scanResult.BSSID, count);
-                            count.remove("" + counter);
-
-                            firebaseFirestore.collection("userdata")
-                                    .document(firebaseAuth.getUid())
-                                    .set(networks, SetOptions.merge());
                         }
 
-                        data.put("network_list", networks);
-                        data.put("length", networks.size());
-                        data.put("timestamp", FieldValue.serverTimestamp());
-
-                        JSONObject jsonObject = new JSONObject(networks);
-                        String orgJsonData = jsonObject.toString();
-                        try {
-                            FileWriter file = new FileWriter("map.json");
-                            file.write(orgJsonData);
-                            file.close();
-                        } catch (IOException e) {
-                            // TODO Auto-generated catch block
-                            e.printStackTrace();
+                        if(bucketKey == null) {
+                            Log.w(Bucket.DEBUG_TAG, "did not get bucket");
+                            return;
                         }
 
-                        //FirebaseFirestore firebaseFirestore = FirebaseFirestore.getInstance();
-                        //FirebaseAuth firebaseAuth = FirebaseAuth.getInstance();
+                        Bucket.buckets.put(bucketKey, bucket);
 
-                        //firebaseFirestore.collection("userdata")
-                        //      .document(firebaseAuth.getUid())
-                        //     .collection().update(data);
-
-                        // Create a reference to the cities collection
-                        //CollectionReference citiesRef = firebaseFirestore.collection("userdata")
-                        //       .document(firebaseAuth.getUid()).collection();
-
-                        // Create a query against the collection.
-                        //Query query = citiesRef.whereEqualTo("state", "CA");
+                        firebaseFirestore.collection("userdata").document(uid).collection("networks").document(bucketKey).set(bucket);
+                        firebaseFirestore.collection("userdata").document(uid).collection("networks").document("bucket_index").set(Bucket.bucket_index);
                     }
                 });
 
@@ -236,7 +245,7 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback, Google
 
         @Override
         public String toString() {
-            return "The " + description + " has been clicked " + clickCount + " times.";
+            return "AP " + description + " has been clicked " + clickCount + " times.";
         }
     }
 
@@ -285,27 +294,31 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback, Google
                     Location location = locationResult.getLastLocation();
                     LatLng currentLocation = new LatLng(location.getLatitude(), location.getLongitude());
 
-                    LatLng center = new LatLng(lat, longitude);
+                    String bucketKey = Bucket.isInIndex("placeholder");
 
-                    for (Map.Entry < String, Object > entry:
-                            networks.entrySet()) {
-                        String bssid = entry.getKey();
+                    for (Map.Entry<String, Object> set :
+                            bucketData.entrySet()) {
+                        String currentBssid = set.getValue().toString();
+                        String test = currentBssid.toString();
+                        //LatLng center = new LatLng(bucketData.get(currentBssid.toString()));
                         //Integer rad = (Integer) entry.getValue();
-                        if (!circles.containsKey(bssid)) {
-                            circles.put(bssid, mMap.addCircle(new CircleOptions()
-                                    .center(center)
+                        if (!circles.containsKey(currentBssid)) {
+                            circles.put(currentBssid, mMap.addCircle(new CircleOptions()
+                                    .center(currentLocation)
                                     .radius(20)
                                     .strokeColor(Color.RED)
                                     .fillColor(Color.GREEN)));
-                            circles.get(bssid).setClickable(true);
-                            circles.get(bssid).setTag(new CustomTag(bssid));
+                            circles.get(currentBssid).setClickable(true);
+                            circles.get(currentBssid).setTag(new CustomTag(currentBssid));
                         }
 
-                        if (circles.containsKey(bssid) && circles.get(bssid).getCenter() != center) {
-                            circles.get(bssid).setCenter(center);
+                        if (circles.containsKey(currentBssid) && circles.get(currentBssid).getCenter() != currentLocation) {
+                            circles.get(currentBssid).setCenter(currentLocation);
                         }
                         //circles.get("bssid").setTag(bssid);
                     }
+
+
 
                     lat = location.getLatitude();
                     longitude = location.getLongitude();
@@ -348,10 +361,9 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback, Google
 
     private void onClick(CustomTag tag) {
         tag.incrementClickCount();
-        if(tag != null) {
+        if (tag != null) {
             mTagText.setText(tag.toString());
-        }
-        else {
+        } else {
             Log.e("TAG: ", "What in tarnation?");
         }
     }
@@ -380,7 +392,7 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback, Google
     public void onCircleClick(@NonNull Circle circle) {
         onClick((CustomTag) circle.getTag());
         //for (Circle value : circles.values()) {
-          //  onClick((CustomTag) circles.get(value).getTag());
+        //  onClick((CustomTag) circles.get(value).getTag());
         //}
     }
 }

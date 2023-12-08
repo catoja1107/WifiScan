@@ -8,6 +8,7 @@ import android.util.Log;
 import android.view.MenuItem;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.ActionBarDrawerToggle;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
@@ -15,12 +16,23 @@ import androidx.core.view.GravityCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.fragment.app.FragmentManager;
 
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.android.gms.tasks.Task;
 import com.google.android.material.navigation.NavigationView;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.firestore.CollectionReference;
+import com.google.firebase.firestore.DocumentChange;
 import com.google.firebase.firestore.DocumentReference;
+import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.EventListener;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.FirebaseFirestoreException;
+import com.google.firebase.firestore.QueryDocumentSnapshot;
+import com.google.firebase.firestore.QuerySnapshot;
 import com.google.firebase.firestore.SetOptions;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -103,8 +115,9 @@ public class MainActivity extends AppCompatActivity {
 
     private void SetupClient() {
         FirebaseFirestore firebaseFirestore = FirebaseFirestore.getInstance();
-        String uid = FirebaseAuth.getInstance().getUid();
+        FirebaseAuth firebaseAuth = FirebaseAuth.getInstance();
 
+        String uid = firebaseAuth.getUid();
         Map<Object, Object> data = new HashMap<>();
         Map<String, Object> friends = new HashMap<>();
         data.put("email", FirebaseAuth.getInstance().getCurrentUser().getEmail());
@@ -115,5 +128,63 @@ public class MainActivity extends AppCompatActivity {
             firebaseFirestore.collection("userdata").document(uid)
                     .set(data);
         }
+
+        CollectionReference networksRef = firebaseFirestore.collection("userdata").document(firebaseAuth.getUid()).collection("networks");
+        networksRef.get().addOnSuccessListener(new OnSuccessListener<QuerySnapshot>() {
+            @Override
+            public void onSuccess(QuerySnapshot queryDocumentSnapshots) {
+                if(queryDocumentSnapshots.isEmpty()) {
+                    HashMap<String, Object> bucketData = new HashMap<>();
+                    bucketData.put("count", 0);
+
+                    DocumentReference bucket = networksRef.document();
+                    bucket.set(bucketData);
+
+                    HashMap<String, Object> bucketIndex = new HashMap<>();
+                    HashMap<String, Object> bucketIData = new HashMap<>();
+                    bucketIData.put("lists", new ArrayList<>());
+                    bucketIData.put("count", 0);
+                    bucketIndex.put(bucket.getId(), bucketIData);
+
+                    networksRef.document("bucket_index").set(bucketIndex);
+
+                    setupBuckets();
+                } else {
+                    setupBuckets();
+                }
+            }
+        });
+    }
+
+    void setupBuckets() {
+        FirebaseFirestore firebaseFirestore = FirebaseFirestore.getInstance();
+        FirebaseAuth firebaseAuth = FirebaseAuth.getInstance();
+
+        String uid = firebaseAuth.getUid();
+        CollectionReference networksRef = firebaseFirestore.collection("userdata").document(firebaseAuth.getUid()).collection("networks");
+        networksRef.document("bucket_index").get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
+            @Override
+            public void onComplete(@NonNull Task<DocumentSnapshot> task) {
+                if(task.isSuccessful()) {
+                    Log.d(Bucket.DEBUG_TAG, task.getResult().getId());
+                    Bucket.bucket_index = (HashMap<String, Object>) task.getResult().getData();
+
+                    assert Bucket.bucket_index != null;
+                    for(String key : Bucket.bucket_index.keySet()) {
+                        networksRef.document(key).get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
+                            @Override
+                            public void onComplete(@NonNull Task<DocumentSnapshot> task) {
+                                if(task.isSuccessful()) {
+                                    Bucket.buckets.put(key, task.getResult().getData());
+                                    Log.d(Bucket.DEBUG_TAG, String.format("loaded bucket: %s", key));
+
+                                    //Bucket.createSnapshotListener(key);
+                                }
+                            }
+                        });
+                    }
+                }
+            }
+        });
     }
 }
