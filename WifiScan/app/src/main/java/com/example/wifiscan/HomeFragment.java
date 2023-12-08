@@ -294,31 +294,43 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback, Google
                     Location location = locationResult.getLastLocation();
                     LatLng currentLocation = new LatLng(location.getLatitude(), location.getLongitude());
 
-                    String bucketKey = Bucket.isInIndex("placeholder");
+                    if(Bucket.bucket_index == null) {
+                        Log.w(Bucket.DEBUG_TAG, "bucket_index hasn't loaded yet [location]");
+                        return;
+                    }
 
-                    for (Map.Entry<String, Object> set :
-                            bucketData.entrySet()) {
-                        String currentBssid = set.getValue().toString();
-                        String test = currentBssid.toString();
-                        //LatLng center = new LatLng(bucketData.get(currentBssid.toString()));
-                        //Integer rad = (Integer) entry.getValue();
-                        if (!circles.containsKey(currentBssid)) {
-                            circles.put(currentBssid, mMap.addCircle(new CircleOptions()
+                    String bucketKey = Bucket.isInIndex("placeholder");
+                    HashMap<String, Object> bucket = (HashMap<String, Object>) Bucket.buckets.get(bucketKey);
+
+                    if(bucket == null) {
+                        Log.w(Bucket.DEBUG_TAG, String.format("%s bucket hasn't loaded yet [location]", bucketKey));
+                        return;
+                    }
+
+                    for(String bssid : bucket.keySet()) {
+                        if(bssid.equals("count")) {
+                            continue;
+                        }
+                        HashMap<String, Object> network = (HashMap<String, Object>) bucket.get(bssid);
+                        Double min_lat = ((Number) network.get("min_latitude")).doubleValue();
+                        Double min_long = ((Number) network.get("min_longitude")).doubleValue();
+                        Double max_lat = ((Number) network.get("max_latitude")).doubleValue();
+                        Double max_long = ((Number) network.get("max_longitude")).doubleValue();
+
+                        if (!circles.containsKey(bssid)) {
+                            circles.put(bssid, mMap.addCircle(new CircleOptions()
                                     .center(currentLocation)
                                     .radius(20)
                                     .strokeColor(Color.RED)
                                     .fillColor(Color.GREEN)));
-                            circles.get(currentBssid).setClickable(true);
-                            circles.get(currentBssid).setTag(new CustomTag(currentBssid));
+                            circles.get(bssid).setClickable(true);
+                            circles.get(bssid).setTag(new CustomTag(bssid));
                         }
 
-                        if (circles.containsKey(currentBssid) && circles.get(currentBssid).getCenter() != currentLocation) {
-                            circles.get(currentBssid).setCenter(currentLocation);
+                        if (circles.containsKey(bssid) && circles.get(bssid).getCenter() != currentLocation) {
+                            circles.get(bssid).setCenter(currentLocation);
                         }
-                        //circles.get("bssid").setTag(bssid);
                     }
-
-
 
                     lat = location.getLatitude();
                     longitude = location.getLongitude();
