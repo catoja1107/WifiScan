@@ -128,6 +128,7 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback, Google
         View view = inflater.inflate(R.layout.fragment_home, container, false);
         mMapView = (MapView) view.findViewById(R.id.mapView);
         mTagText = (TextView) view.findViewById(R.id.tag_text);
+        mTagText.setText("testing");
         mMapView.onCreate(savedInstanceState);
         mMapView.getMapAsync(this);
         mMapView.onResume();
@@ -296,6 +297,8 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback, Google
                                     .radius(20)
                                     .strokeColor(Color.RED)
                                     .fillColor(Color.GREEN)));
+                            circles.get(bssid).setClickable(true);
+                            circles.get(bssid).setTag(new CustomTag(bssid));
                         }
 
                         if (circles.containsKey(bssid) && circles.get(bssid).getCenter() != center) {
@@ -331,11 +334,6 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback, Google
 
                                 LatLng iterate = new LatLng(latitude, longitude);
 
-                                mMap.addMarker(
-                                        new AdvancedMarkerOptions()
-                                                .position(iterate)
-                                                .icon(BitmapDescriptorFactory.fromResource(R.drawable.ic_launcher_background))
-                                                .title(bssid));
                             }
                         } catch (IOException | JSONException e) {
                             e.printStackTrace();
@@ -350,7 +348,12 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback, Google
 
     private void onClick(CustomTag tag) {
         tag.incrementClickCount();
-        mTagText.setText(tag.toString());
+        if(tag != null) {
+            mTagText.setText(tag.toString());
+        }
+        else {
+            Log.e("TAG: ", "What in tarnation?");
+        }
     }
 
     @Override
@@ -376,5 +379,8 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback, Google
     @Override
     public void onCircleClick(@NonNull Circle circle) {
         onClick((CustomTag) circle.getTag());
+        //for (Circle value : circles.values()) {
+          //  onClick((CustomTag) circles.get(value).getTag());
+        //}
     }
 }
