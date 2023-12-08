@@ -33,14 +33,15 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MapStyleOptions;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.database.DataSnapshot;
-import com.google.firebase.database.DatabaseError;
-import com.google.firebase.database.ValueEventListener;
 import com.google.firebase.firestore.CollectionReference;
+import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.Query;
+import com.google.firebase.firestore.QuerySnapshot;
 import com.google.firebase.firestore.SetOptions;
 
 import org.json.JSONArray;
@@ -53,6 +54,7 @@ import java.io.IOException;
 import java.lang.reflect.Array;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -71,24 +73,23 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback, Google
     private static final String ARG_PARAM1 = "param1";
     private static final String ARG_PARAM2 = "param2";
 
-    public HashMap < String, Circle > circles = new HashMap < > ();
+    public HashMap<String, Circle> circles = new HashMap<>();
 
     // TODO: Rename and change types of parameters
     private String mParam1;
     private String mParam2;
 
     public GoogleMap mMap;
-
-    public HashMap < String, Object > count = new HashMap < > ();
-    public HashMap < Object, Object > network = new HashMap < > ();
-    public HashMap < String, Object > networks = new HashMap < > ();
     private MapView mMapView;
 
     public TextView mTagText;
 
     public double lat = 0;
     public double longitude = 0;
+    private HashMap<String, Object> networks = new HashMap<>();
     private FusedLocationProviderClient fusedLocationProviderClient;
+
+    private String DEBUG_TAG = "WifiScanDebug";
 
     public HomeFragment() {
         // Required empty public constructor
@@ -137,79 +138,45 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback, Google
             public void onClick(View view) {
                 WifiScanner wifiScanner = new WifiScanner(getActivity(), new WifiScannerListener() {
                     @Override
-                    public void onWifiScanResult(List < ScanResult > scanResults) {
+                    public void onWifiScanResult(List<ScanResult> scanResults) {
                         if (scanResults.size() == 0) {
                             return;
                         }
                         FirebaseFirestore firebaseFirestore = FirebaseFirestore.getInstance();
                         FirebaseAuth firebaseAuth = FirebaseAuth.getInstance();
-                        HashMap < String, Object > data = new HashMap < > ();
+                        HashMap<String, Object> data = new HashMap<>();
 
-                        int counter = 0;
+                        CollectionReference networksRef = firebaseFirestore.collection("userdata").document(firebaseAuth.getUid()).collection("networks");
 
-                        for (ScanResult scanResult: scanResults) {
-                            firebaseFirestore.collection("userdata")
-                                    .document(firebaseAuth.getUid())
-                                    .get();
-                            int maxLevel = 0;
-                            int minLevel = 0;
-                            network.put("ssid", scanResult.SSID);
-                            network.put("db", scanResult.level);
-                            network.put("frequency", scanResult.frequency);
-                            network.put("capabilities", scanResult.capabilities);
-                            network.put("latitude", lat);
-                            network.put("longitude", longitude);
+                        networksRef.get().addOnSuccessListener(new OnSuccessListener<QuerySnapshot>() {
+                            @Override
+                            public void onSuccess(QuerySnapshot queryDocumentSnapshots) {
+                                if(queryDocumentSnapshots.isEmpty()) {
+                                    HashMap<String, Object> bucketData = new HashMap<>();
+                                    bucketData.put("count", 0);
 
-                            count.put("" + counter++, network);
-                            count.put("timestamp", FieldValue.serverTimestamp());
-                            if (scanResult.level >= minLevel) {
-                                count.put("minLevel", scanResult.level);
-                                count.put("edgeLat", lat);
-                                count.put("edgeLong", longitude);
+                                    DocumentReference bucket = networksRef.document();
+                                    bucket.set(bucketData);
+
+                                    HashMap<String, Object> bucketIndex = new HashMap<>();
+                                    HashMap<String, Object> bucketIData = new HashMap<>();
+                                    bucketIData.put("lists", new ArrayList<>());
+                                    bucketIData.put("count", 0);
+                                    bucketIndex.put(bucket.getId(), bucketIData);
+
+                                    networksRef.document("bucket_index").set(bucketIndex);
+                                }
                             }
+                        });
 
-                            if (scanResult.level <= maxLevel) {
-                                count.put("maxLevel", scanResult.level);
-                                count.put("centerLat", lat);
-                                count.put("centerLong", longitude);
-                            }
 
-                            networks.put("" + scanResult.BSSID, count);
-                            count.remove("" + counter);
-
-                            firebaseFirestore.collection("userdata")
-                                    .document(firebaseAuth.getUid())
-                                    .set(networks, SetOptions.merge());
+                        for (ScanResult scanResult : scanResults) {
+//                            HashMap<String, Object> bucket = new HashMap<>();
+//
+//                            firebaseFirestore.collection("userdata")
+//                                    .document(firebaseAuth.getUid())
+//                                    .set(networks, SetOptions.merge());
                         }
-
-                        data.put("network_list", networks);
-                        data.put("length", networks.size());
-                        data.put("timestamp", FieldValue.serverTimestamp());
-
-                        JSONObject jsonObject = new JSONObject(networks);
-                        String orgJsonData = jsonObject.toString();
-                        try {
-                            FileWriter file = new FileWriter("map.json");
-                            file.write(orgJsonData);
-                            file.close();
-                        } catch (IOException e) {
-                            // TODO Auto-generated catch block
-                            e.printStackTrace();
-                        }
-
-                        //FirebaseFirestore firebaseFirestore = FirebaseFirestore.getInstance();
-                        //FirebaseAuth firebaseAuth = FirebaseAuth.getInstance();
-
-                        //firebaseFirestore.collection("userdata")
-                        //      .document(firebaseAuth.getUid())
-                        //     .collection().update(data);
-
-                        // Create a reference to the cities collection
-                        //CollectionReference citiesRef = firebaseFirestore.collection("userdata")
-                        //       .document(firebaseAuth.getUid()).collection();
-
-                        // Create a query against the collection.
-                        //Query query = citiesRef.whereEqualTo("state", "CA");
                     }
                 });
 
@@ -287,7 +254,7 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback, Google
 
                     LatLng center = new LatLng(lat, longitude);
 
-                    for (Map.Entry < String, Object > entry:
+                    for (Map.Entry<String, Object> entry :
                             networks.entrySet()) {
                         String bssid = entry.getKey();
                         //Integer rad = (Integer) entry.getValue();
@@ -348,10 +315,9 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback, Google
 
     private void onClick(CustomTag tag) {
         tag.incrementClickCount();
-        if(tag != null) {
+        if (tag != null) {
             mTagText.setText(tag.toString());
-        }
-        else {
+        } else {
             Log.e("TAG: ", "What in tarnation?");
         }
     }
@@ -380,7 +346,7 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback, Google
     public void onCircleClick(@NonNull Circle circle) {
         onClick((CustomTag) circle.getTag());
         //for (Circle value : circles.values()) {
-          //  onClick((CustomTag) circles.get(value).getTag());
+        //  onClick((CustomTag) circles.get(value).getTag());
         //}
     }
 }
