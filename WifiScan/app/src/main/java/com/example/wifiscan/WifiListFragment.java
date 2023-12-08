@@ -88,38 +88,30 @@ public class WifiListFragment extends Fragment {
         view.findViewById(R.id.loadbtn).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                WifiScanner wifiScanner = new WifiScanner(getActivity(), new WifiScannerListener() {
-                    @Override
-                    public void onWifiScanResult(List<ScanResult> scanResults) {
-                        if (scanResults.size() == 0) {
-                            return;
-                        }
-                        lastScanResults = scanResults;
-                        HashMap<String, Object> data = new HashMap<>();
-                        HashMap<String, Object> networks = new HashMap<>();
+                FirebaseFirestore firebaseFirestore = FirebaseFirestore.getInstance();
+                FirebaseAuth firebaseAuth = FirebaseAuth.getInstance();
 
 
-                        int counter = 0;
-                        for (ScanResult scanResult : scanResults) {
-                            HashMap<Object, Object> network = new HashMap<>();
-                            network.put("ssid", scanResult.SSID);
-                            network.put("bssid", scanResult.BSSID);
-                            network.put("db", scanResult.level);
-                            network.put("frequency", scanResult.frequency);
-                            network.put("capabilities", scanResult.capabilities);
-                            network.put("Channel", scanResult.channelWidth);
-                            updateWifiListView(scanResults);
-
-                        }
-
-
-                    }
-                });
-
-
-                wifiScanner.executeScanOnce();
+                firebaseFirestore.collection("userdata")
+                        .document(firebaseAuth.getUid())
+                        .get()
+                        .addOnSuccessListener(documentSnapshot -> {
+                            if (documentSnapshot.exists()) {
+                                // Data found, update the WiFi ListView
+                                HashMap<String, Object> data = (HashMap<String, Object>) documentSnapshot.getData();
+                                updateWifiListViewFromFirebase(data);
+                            } else {
+                                // No data found
+                                // Handle this case as needed
+                            }
+                        })
+                        .addOnFailureListener(e -> {
+                            // Handle failures (e.g., network issues, permission issues)
+                            e.printStackTrace();
+                        });
             }
         });
+
         wifiListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
@@ -127,7 +119,7 @@ public class WifiListFragment extends Fragment {
                 String ssid = (String) wifiListView.getItemAtPosition(i);
                 ScanResult clickedNetwork = findClickedNetwork(ssid);
 
-                // Show more details (customize this part based on your requirements)
+
                 if (clickedNetwork != null) {
                     showNetworkDetailsDialog(clickedNetwork);
                 }
@@ -135,12 +127,18 @@ public class WifiListFragment extends Fragment {
         });
         // Inflate the layout for this fragment
         return view;
-    }// Method to update ListView with scan results
-    private void updateWifiListView(List<ScanResult> scanResults) {
-        // Create a list of WiFi network names (SSIDs)
+    }
+    // Method to update ListView with scan results
+    private void updateWifiListViewFromFirebase(HashMap<String, Object> data) {
+        // Extract WiFi network names (SSIDs) from the data
         List<String> wifiNetworks = new ArrayList<>();
-        for (ScanResult scanResult : scanResults) {
-            wifiNetworks.add(scanResult.SSID);
+        if (data.containsKey("networks")) {
+            HashMap<String, Object> networks = (HashMap<String, Object>) data.get("networks");
+            for (String bssid : networks.keySet()) {
+                HashMap<String, Object> networkData = (HashMap<String, Object>) networks.get(bssid);
+                wifiNetworks.add(networkData.get("ssid").toString());
+
+            }
         }
 
         // Use an ArrayAdapter to populate the ListView
@@ -169,9 +167,6 @@ public class WifiListFragment extends Fragment {
                 + "Frequency: " + scanResult.frequency + " MHz" + "\n"
                 + "Capabilities: " + scanResult.capabilities +"\n"
                 + scanResult.channelWidth);
-
-        // Add more details as needed
-
         builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialogInterface, int i) {
@@ -182,6 +177,5 @@ public class WifiListFragment extends Fragment {
         AlertDialog dialog = builder.create();
         dialog.show();
     }
-
 
 }
