@@ -175,32 +175,5 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         });
-
-//        networksRef.addSnapshotListener(new EventListener<QuerySnapshot>() {
-//            @Override
-//            public void onEvent(@Nullable QuerySnapshot snapshot, @Nullable FirebaseFirestoreException error) {
-//                if(error != null) {
-//                    Log.w(Bucket.DEBUG_TAG, error.toString());
-//                    return;
-//                }
-//
-//                if(snapshot.getMetadata().hasPendingWrites()) {
-//                    return;
-//                }
-//
-//                for(DocumentChange document : snapshot.getDocumentChanges()) {
-//                    if(document.getDocument().getId().equals("bucket_index")) {
-//                        Bucket.bucket_index = (HashMap<String, Object>) document.getDocument().getData();
-//                        continue;
-//                    }
-//
-//                    if(document.getType() != DocumentChange.Type.ADDED) {
-//                        break;
-//                    }
-//
-//                    Log.d(Bucket.DEBUG_TAG, String.format("collection snapshot listener fired for %s", document.getDocument().getId()));
-//                }
-//            }
-//        });
     }
 }

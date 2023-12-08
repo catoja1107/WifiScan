@@ -143,6 +143,7 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback, Google
 
                 FirebaseFirestore firebaseFirestore = FirebaseFirestore.getInstance();
                 FirebaseAuth firebaseAuth = FirebaseAuth.getInstance();
+                String uid = firebaseAuth.getUid();
 
                 WifiScanner wifiScanner = new WifiScanner(getActivity(), new WifiScannerListener() {
                     @Override
@@ -151,14 +152,68 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback, Google
                             return;
                         }
 
+                        //theres only going to be one bucket for testing so im just adding placeholder
+                        String bucketKey = Bucket.isInIndex("placeholder");
+                        ArrayList<String> bssidList = (ArrayList<String>) ((HashMap<String, Object>)Bucket.bucket_index.get(bucketKey)).get("lists");
+
+                        HashMap<String, Object> bucket = Bucket.getBucket(bucketKey);
                         for (ScanResult scanResult : scanResults) {
-                            String bucketKey = Bucket.isInIndex(scanResult.BSSID);
+                            bssidList.add(scanResult.BSSID);
+                            bucketKey = Bucket.isInIndex(scanResult.BSSID);
                             if(bucketKey == null) {
                                 //need to create new bucket here if over 100
+                                break;
                             }
 
+                            HashMap<String, Object> bucketData = new HashMap<>();
+                            HashMap<String, Object> network = new HashMap<>();
 
+                            network.put("ssid", scanResult.SSID);
+                            network.put("db", scanResult.level);
+                            network.put("latitude", lat);
+                            network.put("longitude", longitude);
+
+                            if(bucket.containsKey(scanResult.BSSID)) {
+                                bucketData = (HashMap<String, Object>) bucket.get(scanResult.BSSID);
+                                Long count = (Long)bucketData.get("count");
+
+                                bucketData.put("" + count, network);
+
+                                if((Long)bucketData.get("min_level") <= scanResult.level) {
+                                    bucketData.put("min_level", scanResult.level);
+                                    bucketData.put("min_latitude", lat);
+                                    bucketData.put("min_longitude", longitude);
+                                }
+
+                                if((Long)bucketData.get("max_level") >= scanResult.level) {
+                                    bucketData.put("max_level", scanResult.level);
+                                    bucketData.put("max_latitude", lat);
+                                    bucketData.put("max_longitude", longitude);
+                                }
+
+                                bucketData.put("count", count++);
+                            } else {
+                                bucketData.put("0", network);
+                                bucketData.put("count", 1);
+                                bucketData.put("min_level", scanResult.level); //can only be determined after second data so we're using the first
+                                bucketData.put("min_latitude", lat);
+                                bucketData.put("min_longitude", longitude);
+                                bucketData.put("max_level", scanResult.level);
+                                bucketData.put("max_latitude", lat);
+                                bucketData.put("max_longitude", longitude);
+                                bucket.put(scanResult.BSSID, bucketData);
+                            }
                         }
+
+                        if(bucketKey == null) {
+                            Log.w(Bucket.DEBUG_TAG, "did not get bucket");
+                            return;
+                        }
+
+                        Bucket.buckets.put(bucketKey, bucket);
+
+                        firebaseFirestore.collection("userdata").document(uid).collection("networks").document(bucketKey).set(bucket);
+                        firebaseFirestore.collection("userdata").document(uid).collection("networks").document("bucket_index").set(Bucket.bucket_index);
                     }
                 });
 

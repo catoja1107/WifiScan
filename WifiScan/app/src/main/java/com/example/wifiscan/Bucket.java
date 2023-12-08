@@ -24,9 +24,9 @@ public class Bucket {
         for(String key : bucket_index.keySet()) {
             HashMap<String, Object> index = (HashMap<String, Object>) bucket_index.get(key);
             Long bucketSize = (Long)index.get("count");
-            if(bucketSize == 0) {
-                continue;
-            }
+//            if(bucketSize == 0) {
+//                continue;
+//            }
 
             ArrayList<String> list = (ArrayList<String>)index.get("lists");
             if(list.contains(bssid)) {
@@ -42,31 +42,7 @@ public class Bucket {
         return bucket_id;
     }
 
-    //might be superseded by collection listener
-//    public static void createSnapshotListener(String key) {
-//        Log.d(DEBUG_TAG, String.format("creating snapshot listener for %s", key));
-//
-//        FirebaseFirestore firebaseFirestore = FirebaseFirestore.getInstance();
-//        FirebaseAuth firebaseAuth = FirebaseAuth.getInstance();
-//        String uid = firebaseAuth.getUid();
-//
-//        firebaseFirestore.collection("userdata").document(uid).collection("networks").document(key).addSnapshotListener(new EventListener<DocumentSnapshot>() {
-//            @Override
-//            public void onEvent(@Nullable DocumentSnapshot snapshot, @Nullable FirebaseFirestoreException error) {
-//                if(error != null) {
-//                    Log.w(DEBUG_TAG, error.toString());
-//                    return;
-//                }
-//
-//                if(snapshot.getMetadata().hasPendingWrites()) {
-//                    //only update data if snapshot is from server and not client
-//                    return;
-//                }
-//
-//                if(snapshot != null && snapshot.exists()) {
-//                    Bucket.buckets.replace(key, snapshot.getData());
-//                }
-//            }
-//        });
-//    }
+    public static HashMap<String, Object> getBucket(String key) {
+        return (HashMap<String, Object>) buckets.get(key);
+    }
 }
