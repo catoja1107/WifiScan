@@ -158,7 +158,10 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback, Google
 
                         HashMap<String, Object> bucket = Bucket.getBucket(bucketKey);
                         for (ScanResult scanResult : scanResults) {
-                            bssidList.add(scanResult.BSSID);
+                            if(!bssidList.contains(scanResult.BSSID)) {
+                                bssidList.add(scanResult.BSSID);
+                            }
+
                             bucketKey = Bucket.isInIndex(scanResult.BSSID);
                             if(bucketKey == null) {
                                 //need to create new bucket here if over 100
@@ -175,23 +178,24 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback, Google
 
                             if(bucket.containsKey(scanResult.BSSID)) {
                                 bucketData = (HashMap<String, Object>) bucket.get(scanResult.BSSID);
-                                Long count = (Long)bucketData.get("count");
+                                Long count = ((Number)bucketData.get("count")).longValue();
 
                                 bucketData.put("" + count, network);
 
-                                if((Long)bucketData.get("min_level") <= scanResult.level) {
+                                if(((Number)bucketData.get("min_level")).longValue() <= scanResult.level) {
                                     bucketData.put("min_level", scanResult.level);
                                     bucketData.put("min_latitude", lat);
                                     bucketData.put("min_longitude", longitude);
                                 }
 
-                                if((Long)bucketData.get("max_level") >= scanResult.level) {
+                                if(((Number)bucketData.get("max_level")).longValue() >= scanResult.level) {
                                     bucketData.put("max_level", scanResult.level);
                                     bucketData.put("max_latitude", lat);
                                     bucketData.put("max_longitude", longitude);
                                 }
 
-                                bucketData.put("count", count++);
+                                count++;
+                                bucketData.put("count", count);
                             } else {
                                 bucketData.put("0", network);
                                 bucketData.put("count", 1);

@@ -147,10 +147,19 @@ public class MainActivity extends AppCompatActivity {
                     bucketIndex.put(bucket.getId(), bucketIData);
 
                     networksRef.document("bucket_index").set(bucketIndex);
+
+                    setupBuckets();
                 }
             }
         });
+    }
 
+    void setupBuckets() {
+        FirebaseFirestore firebaseFirestore = FirebaseFirestore.getInstance();
+        FirebaseAuth firebaseAuth = FirebaseAuth.getInstance();
+
+        String uid = firebaseAuth.getUid();
+        CollectionReference networksRef = firebaseFirestore.collection("userdata").document(firebaseAuth.getUid()).collection("networks");
         networksRef.document("bucket_index").get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
             @Override
             public void onComplete(@NonNull Task<DocumentSnapshot> task) {
