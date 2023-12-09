@@ -317,15 +317,24 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback, Google
                         Double max_lat = ((Number) network.get("max_latitude")).doubleValue();
                         Double max_long = ((Number) network.get("max_longitude")).doubleValue();
 
-                        Double delta_lat = max_lat-min_lat;
-                        Double delta_long = max_long-min_long;
-                        Integer pythag = (int)(Math.sqrt(delta_lat*delta_lat)+(delta_long*delta_long));
+                        final Double EARTH_RADIUS = 6371000.0;
+                        Double delta_lat = Math.toRadians(max_lat - min_lat);
+                        Double delta_long = Math.toRadians(max_long - min_long);
+
+                        Double a = Math.sin(delta_lat / 2) * Math.sin(delta_lat / 2) +
+                                Math.cos(Math.toRadians(min_lat)) * Math.cos(Math.toRadians(max_lat)) *
+                                        Math.sin(delta_long / 2) * Math.sin(delta_long / 2);
+
+                        Double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+                        // Distance in meters
+                        Double radius = EARTH_RADIUS * c;
+
                         LatLng apLocation = new LatLng(max_lat, max_long);
 
                         if (!circles.containsKey(bssid)) {
                             circles.put(bssid, mMap.addCircle(new CircleOptions()
                                     .center(apLocation)
-                                    .radius((pythag+2)*5)
+                                    .radius(radius)
                                     .strokeColor(Color.BLUE)
                                     .fillColor(Color.GREEN)));
                             circles.get(bssid).setClickable(true);
