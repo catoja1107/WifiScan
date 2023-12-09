@@ -17,7 +17,7 @@
 - [Status](#status)
 - [UML](#uml)
 - [What's included](#whats-included)
-- [Creators](#creators)
+- [Creators](https://github.com/catoja1107/WifiScan/blob/main/CONTRIBUTING.md)
 - [Copyright and license](#copyright-and-license)
 
 
@@ -61,5 +61,6 @@ Code and documentation copyright 2023 CSC4350 Team 09. Code released under the [
 
 - [Privacy Policy](https://github.com/catoja1107/WifiScan/blob/main/privacy_policy.md)
 - [Terms of Use](https://github.com/catoja1107/WifiScan/blob/main/terms_and_conditions.md)
+- [Code of Conduct](https://github.com/catoja1107/WifiScan/blob/main/CODE_OF_CONDUCT.md)
 
 Enjoy :metal:
